@@ -10,7 +10,7 @@ export function renderNav(activePage) {
   const links = pages
     .map(({ href, label, icon }) => {
       const active = href === activePage ? "active" : "";
-      return `<a href="${href}" class="nav-link ${active}"><i class="${icon}"></i>${label}</a>`;
+      return `<a href="${href}" class="nav-link ${active}"><i class="ti ${icon}"></i>${label}</a>`;
     })
     .join("");
 
