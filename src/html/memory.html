@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Memory — Symphony</title>
+  <link rel="stylesheet" href="../css/symphony.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <main class="page">
+    <div class="page-header">
+      <h1 class="page-title">Agent Memory</h1>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <div class="filter-bar">
+        <label for="agent-select" style="font-size:13px; color: var(--text-secondary); white-space:nowrap;">Select Agent:</label>
+        <select id="agent-select" style="min-width: 240px;">
+          <option value="">-- Choose an agent --</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="memory-section" style="display:none;">
+      <div class="card">
+        <!-- Add entry form -->
+        <form id="memory-form" class="inline-form visible" autocomplete="off" style="display:flex;">
+          <div class="form-group">
+            <label for="f-key">Key *</label>
+            <input id="f-key" type="text" required maxlength="255" placeholder="e.g. user_name" />
+          </div>
+          <div class="form-group" style="flex: 2;">
+            <label for="f-value">Value *</label>
+            <textarea id="f-value" required placeholder="Value to store"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Value</th>
+                <th>Updated</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
+            <tbody id="memory-tbody">
+              <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span class="pagination-info" id="page-info"></span>
+          <div class="pagination-controls">
+            <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+            <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav, showToast } from "../js/nav.js";
+    import { getAgents, getAgentMemory, upsertMemory, deleteMemory } from "../js/api.js";
+
+    document.getElementById("nav-root").innerHTML = renderNav("memory.html");
+
+    const agentSelect = document.getElementById("agent-select");
+    const memorySection = document.getElementById("memory-section");
+    const tbody = document.getElementById("memory-tbody");
+    const form = document.getElementById("memory-form");
+    const pageInfo = document.getElementById("page-info");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const LIMIT = 20;
+    let skip = 0;
+    let total = 0;
+    let currentAgentId = null;
+
+    function truncate(str, n) {
+      if (!str) return "";
+      return str.length > n ? str.slice(0, n) + "…" : str;
+    }
+
+    async function loadAgents() {
+      try {
+        const data = await getAgents(0, 100);
+        agentSelect.innerHTML = '<option value="">-- Choose an agent --</option>';
+        for (const a of data.items) {
+          const opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = a.name;
+          agentSelect.appendChild(opt);
+        }
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    async function loadMemory() {
+      if (!currentAgentId) return;
+      try {
+        const data = await getAgentMemory(currentAgentId, skip, LIMIT);
+        total = data.total;
+        renderTable(data.items);
+        updatePagination();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No memory entries.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      for (const m of items) {
+        const tr = document.createElement("tr");
+
+        const keyTd = document.createElement("td");
+        keyTd.textContent = m.key;
+
+        const valTd = document.createElement("td");
+        valTd.textContent = truncate(m.value, 80);
+
+        const updatedTd = document.createElement("td");
+        updatedTd.textContent = new Date(m.updated_at || m.created_at).toLocaleString();
+
+        const delTd = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => remove(m.key));
+        delTd.appendChild(delBtn);
+
+        tr.append(keyTd, valTd, updatedTd, delTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const from = total === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + LIMIT, total);
+      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
+      btnPrev.disabled = skip === 0;
+      btnNext.disabled = skip + LIMIT >= total;
+    }
+
+    async function remove(key) {
+      if (!confirm(`Delete memory key "${key}"?`)) return;
+      try {
+        await deleteMemory(currentAgentId, key);
+        showToast("Memory entry deleted.");
+        await loadMemory();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    agentSelect.addEventListener("change", () => {
+      currentAgentId = agentSelect.value || null;
+      skip = 0;
+      if (currentAgentId) {
+        memorySection.style.display = "block";
+        loadMemory();
+      } else {
+        memorySection.style.display = "none";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentAgentId) return;
+      const key = document.getElementById("f-key").value.trim();
+      const value = document.getElementById("f-value").value.trim();
+      try {
+        await upsertMemory(currentAgentId, { key, value });
+        showToast("Memory saved.");
+        form.reset();
+        await loadMemory();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); loadMemory(); });
+    btnNext.addEventListener("click", () => { skip += LIMIT; loadMemory(); });
+
+    loadAgents();
+  </script>
+</body>
+</html>

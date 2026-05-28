@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agents — Symphony</title>
+  <link rel="stylesheet" href="../css/symphony.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <main class="page">
+    <div class="page-header">
+      <h1 class="page-title">Agents</h1>
+      <button class="btn btn-primary" id="btn-new">+ New Agent</button>
+    </div>
+
+    <div class="card">
+      <!-- Inline form -->
+      <form id="agent-form" class="inline-form" autocomplete="off">
+        <input type="hidden" id="form-agent-id" />
+        <div class="form-group">
+          <label for="f-name">Name *</label>
+          <input id="f-name" type="text" required maxlength="255" placeholder="My Agent" />
+        </div>
+        <div class="form-group">
+          <label for="f-model">Model</label>
+          <input id="f-model" type="text" maxlength="100" placeholder="claude-sonnet-4-6" />
+        </div>
+        <div class="form-group">
+          <label for="f-description">Description</label>
+          <textarea id="f-description" placeholder="What does this agent do?"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="f-system-prompt">System Prompt</label>
+          <textarea id="f-system-prompt" placeholder="You are a helpful assistant..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="f-tools">Tools (comma-separated)</label>
+          <input id="f-tools" type="text" placeholder="web_search, code_exec" />
+        </div>
+        <div class="form-group checkbox-group">
+          <input id="f-memory" type="checkbox" />
+          <label for="f-memory">Memory Enabled</label>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Create</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+        </div>
+      </form>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Model</th>
+              <th>Memory</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="agents-tbody">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span class="pagination-info" id="page-info"></span>
+        <div class="pagination-controls">
+          <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+          <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav, showToast } from "../js/nav.js";
+    import { getAgents, createAgent, updateAgent, deleteAgent } from "../js/api.js";
+
+    document.getElementById("nav-root").innerHTML = renderNav("agents.html");
+
+    const tbody = document.getElementById("agents-tbody");
+    const form = document.getElementById("agent-form");
+    const pageInfo = document.getElementById("page-info");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+
+    const LIMIT = 20;
+    let skip = 0;
+    let total = 0;
+    let editingId = null;
+
+    async function load() {
+      try {
+        const data = await getAgents(skip, LIMIT);
+        total = data.total;
+        renderTable(data.items);
+        updatePagination();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No agents found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      for (const a of items) {
+        const tr = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = a.name;
+        const model = document.createElement("td");
+        model.textContent = a.model;
+        const mem = document.createElement("td");
+        mem.innerHTML = a.memory_enabled
+          ? '<span class="bool-yes">Yes</span>'
+          : '<span class="bool-no">No</span>';
+        const created = document.createElement("td");
+        created.textContent = new Date(a.created_at).toLocaleDateString();
+        const actions = document.createElement("td");
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-secondary btn-sm";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openEdit(a));
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.style.marginLeft = "6px";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => remove(a.id, a.name));
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        tr.append(name, model, mem, created, actions);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const from = total === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + LIMIT, total);
+      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
+      btnPrev.disabled = skip === 0;
+      btnNext.disabled = skip + LIMIT >= total;
+    }
+
+    function openForm() {
+      form.classList.add("visible");
+    }
+
+    function closeForm() {
+      form.classList.remove("visible");
+      form.reset();
+      document.getElementById("form-agent-id").value = "";
+      editingId = null;
+      document.getElementById("form-submit-btn").textContent = "Create";
+    }
+
+    function openEdit(agent) {
+      editingId = agent.id;
+      document.getElementById("form-agent-id").value = agent.id;
+      document.getElementById("f-name").value = agent.name;
+      document.getElementById("f-model").value = agent.model;
+      document.getElementById("f-description").value = agent.description || "";
+      document.getElementById("f-system-prompt").value = agent.system_prompt || "";
+      document.getElementById("f-tools").value = (agent.tools || []).join(", ");
+      document.getElementById("f-memory").checked = agent.memory_enabled;
+      document.getElementById("form-submit-btn").textContent = "Update";
+      openForm();
+      form.scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function remove(id, name) {
+      if (!confirm(`Delete agent "${name}"?`)) return;
+      try {
+        await deleteAgent(id);
+        showToast("Agent deleted.");
+        await load();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const toolsRaw = document.getElementById("f-tools").value;
+      const tools = toolsRaw
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const payload = {
+        name: document.getElementById("f-name").value.trim(),
+        model: document.getElementById("f-model").value.trim() || "claude-sonnet-4-6",
+        description: document.getElementById("f-description").value.trim() || null,
+        system_prompt: document.getElementById("f-system-prompt").value.trim() || null,
+        tools,
+        memory_enabled: document.getElementById("f-memory").checked,
+      };
+      try {
+        if (editingId) {
+          await updateAgent(editingId, payload);
+          showToast("Agent updated.");
+        } else {
+          await createAgent(payload);
+          showToast("Agent created.");
+        }
+        closeForm();
+        await load();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    document.getElementById("btn-new").addEventListener("click", () => {
+      closeForm();
+      openForm();
+    });
+    document.getElementById("btn-cancel").addEventListener("click", closeForm);
+    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); load(); });
+    btnNext.addEventListener("click", () => { skip += LIMIT; load(); });
+
+    load();
+  </script>
+</body>
+</html>

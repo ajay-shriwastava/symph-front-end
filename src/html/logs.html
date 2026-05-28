@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logs — Symphony</title>
+  <link rel="stylesheet" href="../css/symphony.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <main class="page">
+    <div class="page-header">
+      <h1 class="page-title">Logs</h1>
+    </div>
+
+    <div class="card">
+      <div class="filter-bar">
+        <select id="f-level">
+          <option value="">All Levels</option>
+          <option value="DEBUG">DEBUG</option>
+          <option value="INFO">INFO</option>
+          <option value="WARNING">WARNING</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+        <input id="f-agent" type="text" placeholder="Agent ID" style="width: 260px;" />
+        <input id="f-workflow" type="text" placeholder="Workflow ID" style="width: 260px;" />
+        <button class="btn btn-secondary" id="btn-apply">Apply</button>
+        <button class="btn btn-secondary" id="btn-clear">Clear</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Level</th>
+              <th>Message</th>
+              <th>Agent ID</th>
+              <th>Workflow ID</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="logs-tbody">
+            <tr><td colspan="5" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span class="pagination-info" id="page-info"></span>
+        <div class="pagination-controls">
+          <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+          <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav, showToast } from "../js/nav.js";
+    import { getLogs } from "../js/api.js";
+
+    document.getElementById("nav-root").innerHTML = renderNav("logs.html");
+
+    const tbody = document.getElementById("logs-tbody");
+    const pageInfo = document.getElementById("page-info");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const LIMIT = 20;
+    let skip = 0;
+    let total = 0;
+    let filters = {};
+
+    const LEVEL_BADGE = {
+      DEBUG: "badge-grey",
+      INFO: "badge-blue",
+      WARNING: "badge-amber",
+      ERROR: "badge-red",
+    };
+
+    function truncate(str, n) {
+      if (!str) return "";
+      return str.length > n ? str.slice(0, n) + "…" : str;
+    }
+
+    async function load() {
+      try {
+        const data = await getLogs({ ...filters, skip, limit: LIMIT });
+        total = data.total;
+        renderTable(data.items);
+        updatePagination();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No logs found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      for (const log of items) {
+        const tr = document.createElement("tr");
+
+        const levelTd = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `badge ${LEVEL_BADGE[log.level] || "badge-grey"}`;
+        badge.textContent = log.level;
+        levelTd.appendChild(badge);
+
+        const msgTd = document.createElement("td");
+        msgTd.textContent = truncate(log.message, 100);
+
+        const agentTd = document.createElement("td");
+        agentTd.textContent = log.agent_id ? log.agent_id.slice(0, 8) + "…" : "—";
+
+        const wfTd = document.createElement("td");
+        wfTd.textContent = log.workflow_id ? log.workflow_id.slice(0, 8) + "…" : "—";
+
+        const createdTd = document.createElement("td");
+        createdTd.textContent = new Date(log.created_at).toLocaleString();
+
+        tr.append(levelTd, msgTd, agentTd, wfTd, createdTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const from = total === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + LIMIT, total);
+      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
+      btnPrev.disabled = skip === 0;
+      btnNext.disabled = skip + LIMIT >= total;
+    }
+
+    document.getElementById("btn-apply").addEventListener("click", () => {
+      skip = 0;
+      filters = {};
+      const level = document.getElementById("f-level").value;
+      const agent = document.getElementById("f-agent").value.trim();
+      const wf = document.getElementById("f-workflow").value.trim();
+      if (level) filters.level = level;
+      if (agent) filters.agent_id = agent;
+      if (wf) filters.workflow_id = wf;
+      load();
+    });
+
+    document.getElementById("btn-clear").addEventListener("click", () => {
+      skip = 0;
+      filters = {};
+      document.getElementById("f-level").value = "";
+      document.getElementById("f-agent").value = "";
+      document.getElementById("f-workflow").value = "";
+      load();
+    });
+
+    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); load(); });
+    btnNext.addEventListener("click", () => { skip += LIMIT; load(); });
+
+    load();
+  </script>
+</body>
+</html>

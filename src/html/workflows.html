@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workflows — Symphony</title>
+  <link rel="stylesheet" href="../css/symphony.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <main class="page">
+    <div class="page-header">
+      <h1 class="page-title">Workflows</h1>
+      <button class="btn btn-primary" id="btn-new">+ New Workflow</button>
+    </div>
+
+    <div class="card">
+      <form id="workflow-form" class="inline-form" autocomplete="off">
+        <input type="hidden" id="form-wf-id" />
+        <div class="form-group">
+          <label for="f-name">Name *</label>
+          <input id="f-name" type="text" required maxlength="255" placeholder="My Workflow" />
+        </div>
+        <div class="form-group">
+          <label for="f-description">Description</label>
+          <textarea id="f-description" placeholder="What does this workflow do?"></textarea>
+        </div>
+        <div class="form-group" style="flex: 2; min-width: 280px;">
+          <label for="f-graph">Graph Definition (JSON)</label>
+          <textarea id="f-graph" placeholder="{}" style="min-height: 90px; font-family: monospace; font-size: 12px;"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Create</button>
+          <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+        </div>
+      </form>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="wf-tbody">
+            <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span class="pagination-info" id="page-info"></span>
+        <div class="pagination-controls">
+          <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+          <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav, showToast } from "../js/nav.js";
+    import { getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow } from "../js/api.js";
+
+    document.getElementById("nav-root").innerHTML = renderNav("workflows.html");
+
+    const tbody = document.getElementById("wf-tbody");
+    const form = document.getElementById("workflow-form");
+    const pageInfo = document.getElementById("page-info");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const LIMIT = 20;
+    let skip = 0;
+    let total = 0;
+    let editingId = null;
+
+    function truncate(str, n) {
+      if (!str) return "";
+      return str.length > n ? str.slice(0, n) + "…" : str;
+    }
+
+    async function load() {
+      try {
+        const data = await getWorkflows(skip, LIMIT);
+        total = data.total;
+        renderTable(data.items);
+        updatePagination();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No workflows found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      for (const w of items) {
+        const tr = document.createElement("tr");
+        const name = document.createElement("td");
+        name.textContent = w.name;
+        const desc = document.createElement("td");
+        desc.textContent = truncate(w.description, 60);
+        const created = document.createElement("td");
+        created.textContent = new Date(w.created_at).toLocaleDateString();
+        const actions = document.createElement("td");
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-secondary btn-sm";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openEdit(w));
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.style.marginLeft = "6px";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => remove(w.id, w.name));
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        tr.append(name, desc, created, actions);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const from = total === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + LIMIT, total);
+      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
+      btnPrev.disabled = skip === 0;
+      btnNext.disabled = skip + LIMIT >= total;
+    }
+
+    function openForm() { form.classList.add("visible"); }
+    function closeForm() {
+      form.classList.remove("visible");
+      form.reset();
+      document.getElementById("form-wf-id").value = "";
+      editingId = null;
+      document.getElementById("form-submit-btn").textContent = "Create";
+    }
+
+    function openEdit(wf) {
+      editingId = wf.id;
+      document.getElementById("form-wf-id").value = wf.id;
+      document.getElementById("f-name").value = wf.name;
+      document.getElementById("f-description").value = wf.description || "";
+      document.getElementById("f-graph").value = JSON.stringify(wf.graph_definition, null, 2);
+      document.getElementById("form-submit-btn").textContent = "Update";
+      openForm();
+      form.scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function remove(id, name) {
+      if (!confirm(`Delete workflow "${name}"?`)) return;
+      try {
+        await deleteWorkflow(id);
+        showToast("Workflow deleted.");
+        await load();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      let graph_definition = {};
+      const raw = document.getElementById("f-graph").value.trim();
+      if (raw) {
+        try { graph_definition = JSON.parse(raw); }
+        catch { showToast("Graph Definition must be valid JSON.", "error"); return; }
+      }
+      const payload = {
+        name: document.getElementById("f-name").value.trim(),
+        description: document.getElementById("f-description").value.trim() || null,
+        graph_definition,
+      };
+      try {
+        if (editingId) {
+          await updateWorkflow(editingId, payload);
+          showToast("Workflow updated.");
+        } else {
+          await createWorkflow(payload);
+          showToast("Workflow created.");
+        }
+        closeForm();
+        await load();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    document.getElementById("btn-new").addEventListener("click", () => { closeForm(); openForm(); });
+    document.getElementById("btn-cancel").addEventListener("click", closeForm);
+    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); load(); });
+    btnNext.addEventListener("click", () => { skip += LIMIT; load(); });
+
+    load();
+  </script>
+</body>
+</html>

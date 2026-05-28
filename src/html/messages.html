@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages — Symphony</title>
+  <link rel="stylesheet" href="../css/symphony.css" />
+</head>
+<body>
+  <div id="nav-root"></div>
+
+  <main class="page">
+    <div class="page-header">
+      <h1 class="page-title">Messages</h1>
+    </div>
+
+    <div class="card">
+      <div class="filter-bar">
+        <input id="f-session" type="text" placeholder="Session ID" style="width: 280px;" />
+        <input id="f-agent" type="text" placeholder="Agent ID" style="width: 280px;" />
+        <button class="btn btn-secondary" id="btn-apply">Apply</button>
+        <button class="btn btn-secondary" id="btn-clear">Clear</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Content</th>
+              <th>Agent ID</th>
+              <th>Session ID</th>
+              <th>Created</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody id="msg-tbody">
+            <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <span class="pagination-info" id="page-info"></span>
+        <div class="pagination-controls">
+          <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+          <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { renderNav, showToast } from "../js/nav.js";
+    import { getMessages, deleteMessage } from "../js/api.js";
+
+    document.getElementById("nav-root").innerHTML = renderNav("messages.html");
+
+    const tbody = document.getElementById("msg-tbody");
+    const pageInfo = document.getElementById("page-info");
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const LIMIT = 20;
+    let skip = 0;
+    let total = 0;
+    let filters = {};
+
+    const ROLE_BADGE = {
+      user: "badge-purple",
+      assistant: "badge-teal",
+      system: "badge-grey",
+      tool: "badge-amber",
+    };
+
+    function truncate(str, n) {
+      if (!str) return "";
+      return str.length > n ? str.slice(0, n) + "…" : str;
+    }
+
+    async function load() {
+      try {
+        const data = await getMessages({ ...filters, skip, limit: LIMIT });
+        total = data.total;
+        renderTable(data.items);
+        updatePagination();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderTable(items) {
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No messages found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = "";
+      for (const m of items) {
+        const tr = document.createElement("tr");
+
+        const roleTd = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `badge ${ROLE_BADGE[m.role] || "badge-grey"}`;
+        badge.textContent = m.role;
+        roleTd.appendChild(badge);
+
+        const contentTd = document.createElement("td");
+        contentTd.textContent = truncate(m.content, 80);
+
+        const agentTd = document.createElement("td");
+        agentTd.textContent = m.agent_id ? m.agent_id.slice(0, 8) + "…" : "—";
+
+        const sessionTd = document.createElement("td");
+        sessionTd.textContent = m.session_id ? m.session_id.slice(0, 8) + "…" : "—";
+
+        const createdTd = document.createElement("td");
+        createdTd.textContent = new Date(m.created_at).toLocaleString();
+
+        const delTd = document.createElement("td");
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => remove(m.id));
+        delTd.appendChild(delBtn);
+
+        tr.append(roleTd, contentTd, agentTd, sessionTd, createdTd, delTd);
+        tbody.appendChild(tr);
+      }
+    }
+
+    function updatePagination() {
+      const from = total === 0 ? 0 : skip + 1;
+      const to = Math.min(skip + LIMIT, total);
+      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
+      btnPrev.disabled = skip === 0;
+      btnNext.disabled = skip + LIMIT >= total;
+    }
+
+    async function remove(id) {
+      if (!confirm("Delete this message?")) return;
+      try {
+        await deleteMessage(id);
+        showToast("Message deleted.");
+        await load();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    document.getElementById("btn-apply").addEventListener("click", () => {
+      skip = 0;
+      filters = {};
+      const s = document.getElementById("f-session").value.trim();
+      const a = document.getElementById("f-agent").value.trim();
+      if (s) filters.session_id = s;
+      if (a) filters.agent_id = a;
+      load();
+    });
+
+    document.getElementById("btn-clear").addEventListener("click", () => {
+      skip = 0;
+      filters = {};
+      document.getElementById("f-session").value = "";
+      document.getElementById("f-agent").value = "";
+      load();
+    });
+
+    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); load(); });
+    btnNext.addEventListener("click", () => { skip += LIMIT; load(); });
+
+    load();
+  </script>
+</body>
+</html>
