@@ -142,3 +142,218 @@ tr:hover td { background: #faf9f7; }
 .channel-option { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; background: #fff; transition: background .12s, border-color .12s; }
 .channel-option:hover { background: var(--purple-dim); border-color: var(--purple); }
 .channel-option input[type="checkbox"] { accent-color: var(--purple); cursor: pointer; }
+
+/* =========================================================================
+   Visual Workflow Builder
+   ========================================================================= */
+
+/* Builder layout wrapper */
+.builder-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-panel);
+}
+
+/* Toolbar */
+.builder-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: #faf9f7;
+  flex-wrap: wrap;
+}
+.builder-toolbar .toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  margin: 0 4px;
+}
+
+/* Main builder row: palette | canvas | config */
+.builder-body {
+  display: flex;
+  min-height: 480px;
+}
+
+/* Node palette */
+.node-palette {
+  width: 130px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf9f7;
+}
+.palette-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-tertiary);
+  margin-bottom: 2px;
+}
+.palette-chip {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: grab;
+  border: 1px solid var(--border-strong);
+  background: #fff;
+  color: var(--text-primary);
+  user-select: none;
+  transition: box-shadow .12s, border-color .12s;
+}
+.palette-chip:hover { box-shadow: 0 2px 6px rgba(0,0,0,.08); border-color: var(--purple); }
+.palette-chip[data-type="start"]     { border-color: var(--purple); color: var(--purple); }
+.palette-chip[data-type="end"]       { border-color: var(--purple); color: var(--purple); }
+.palette-chip[data-type="agent"]     { border-color: var(--teal); color: var(--teal); }
+.palette-chip[data-type="condition"] { border-color: var(--amber); color: var(--amber); }
+
+/* Canvas */
+.canvas-wrap {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-base);
+  cursor: default;
+}
+.canvas-wrap svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* SVG node shapes */
+.wf-node { cursor: pointer; }
+.wf-node:hover .node-body { filter: brightness(0.96); }
+.wf-node.selected .node-body { stroke: var(--purple) !important; stroke-width: 2.5px !important; }
+.node-body { transition: filter .1s; }
+.node-label { font-family: var(--font); font-size: 12px; font-weight: 500; fill: var(--text-primary); pointer-events: none; }
+.node-type-label { font-family: var(--font); font-size: 10px; fill: var(--text-tertiary); pointer-events: none; }
+
+/* Ports */
+.port {
+  cursor: crosshair;
+  fill: var(--purple);
+  stroke: #fff;
+  stroke-width: 1.5px;
+  opacity: 0;
+  transition: opacity .12s;
+}
+.wf-node:hover .port, .port.visible { opacity: 1; }
+.port.port-in { fill: var(--teal); }
+
+/* Edges */
+.wf-edge { fill: none; stroke: var(--border-strong); stroke-width: 1.5px; }
+.wf-edge.selected { stroke: var(--purple); stroke-width: 2px; }
+.wf-edge-draft { fill: none; stroke: var(--purple); stroke-width: 1.5px; stroke-dasharray: 5 3; pointer-events: none; }
+
+/* Edge branch labels */
+.edge-branch-label { font-family: var(--font); font-size: 10px; fill: var(--text-tertiary); pointer-events: none; }
+
+/* Arrowhead defined via SVG marker — no CSS needed but reserve namespace */
+
+/* Config panel */
+.config-panel {
+  width: 220px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  padding: 14px 12px;
+  background: #fff;
+  overflow-y: auto;
+}
+.config-panel-empty {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  margin-top: 8px;
+}
+.config-panel h3 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--text-tertiary);
+  margin-bottom: 10px;
+}
+.config-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.config-field label { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+.config-field input, .config-field select {
+  padding: 6px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: var(--font);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  outline: none;
+}
+.config-field input:focus, .config-field select:focus { border-color: var(--purple); }
+.config-delete-btn { margin-top: 8px; width: 100%; }
+
+/* Run log panel */
+.run-log-wrap {
+  border-top: 1px solid var(--border);
+  background: #faf9f7;
+}
+.run-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.run-log-header .run-log-toggle { font-size: 10px; color: var(--text-tertiary); }
+.run-log-body {
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-family: 'DM Mono', 'Fira Mono', monospace;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.run-log-body .log-line { margin-bottom: 2px; }
+.run-log-body .log-line.log-enter   { color: var(--teal); }
+.run-log-body .log-line.log-complete { color: var(--purple); }
+.run-log-body .log-line.log-edge    { color: var(--text-tertiary); }
+.run-log-body .log-line.log-done    { color: var(--green); font-weight: 600; }
+.run-log-body .log-line.log-error   { color: var(--red); }
+
+/* Runs history (details/summary collapsible) */
+.runs-history {
+  border-top: 1px solid var(--border);
+  background: #fff;
+}
+.runs-history summary {
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.runs-history summary::-webkit-details-marker { display: none; }
+.runs-history-body { padding: 0 14px 12px; }
+.runs-history-body table { font-size: 12px; }
+.runs-history-body th { font-size: 10px; }
+.runs-history-body td { padding: 8px 10px; }
+
+/* Inline node highlight during run */
+.wf-node.run-active   .node-body { stroke: var(--green)  !important; stroke-width: 2.5px !important; }
+.wf-node.run-complete .node-body { stroke: var(--teal)   !important; stroke-width: 2px   !important; }
+.wf-edge.run-active               { stroke: var(--green); stroke-width: 2px; }

@@ -43,6 +43,14 @@ export const updateWorkflow = (id, data) =>
 export const deleteWorkflow = (id) =>
   apiFetch(`/api/v1/workflows/${id}`, { method: "DELETE" });
 
+// Workflow Runs
+export const runWorkflow = (id, input = {}) =>
+  apiFetch(`/api/v1/workflows/${id}/run`, { method: "POST", body: JSON.stringify({ input }) });
+export const getWorkflowRuns = (id, skip = 0, limit = 20) =>
+  apiFetch(`/api/v1/workflows/${id}/runs?skip=${skip}&limit=${limit}`);
+export const getWorkflowRun = (workflowId, runId) =>
+  apiFetch(`/api/v1/workflows/${workflowId}/runs/${runId}`);
+
 // Messages
 export const getMessages = ({ session_id, agent_id, skip = 0, limit = 20 } = {}) => {
   const p = new URLSearchParams({ skip, limit });
