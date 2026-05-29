@@ -147,10 +147,12 @@
                     <th>Status</th>
                     <th>Started</th>
                     <th>Finished</th>
+                    <th>Tokens</th>
+                    <th>Est. Cost</th>
                   </tr>
                 </thead>
                 <tbody id="runs-tbody">
-                  <tr><td colspan="4" class="empty-state">No runs yet.</td></tr>
+                  <tr><td colspan="6" class="empty-state">No runs yet.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1024,19 +1026,25 @@
             appendRunLog(`[${ts}] ENTER  node:${msg.node_id}`, "log-enter");
             highlightNode(msg.node_id, "run-active");
             break;
-          case "node_complete":
-            appendRunLog(`[${ts}] DONE   node:${msg.node_id}`, "log-complete");
+          case "node_complete": {
+            const u = msg.usage;
+            const usageStr = u ? `  [↑${u.input_tokens} ↓${u.output_tokens} $${u.cost_usd?.toFixed(4)}]` : "";
+            appendRunLog(`[${ts}] DONE   node:${msg.node_id}${usageStr}`, "log-complete");
             highlightNode(msg.node_id, "run-complete");
             break;
+          }
           case "edge_traverse":
             appendRunLog(`[${ts}] EDGE   ${msg.edge_id}`, "log-edge");
             highlightEdge(msg.edge_id);
             break;
-          case "run_complete":
-            appendRunLog(`[${ts}] RUN COMPLETE — status:${msg.status}`, "log-done");
+          case "run_complete": {
+            const u = msg.usage;
+            const usageStr = u ? ` | Tokens: ${u.total_tokens?.toLocaleString()} | Cost: $${u.estimated_cost_usd?.toFixed(4)}` : "";
+            appendRunLog(`[${ts}] RUN COMPLETE — status:${msg.status}${usageStr}`, "log-done");
             ws.close();
             loadRunHistory();
             break;
+          }
           case "run_error":
             appendRunLog(`[${ts}] ERROR  ${msg.error}`, "log-error");
             ws.close();
@@ -1083,7 +1091,7 @@
     function renderRunHistory(items) {
       const tbody = document.getElementById("runs-tbody");
       if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No runs yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No runs yet.</td></tr>';
         return;
       }
       tbody.innerHTML = "";
@@ -1106,7 +1114,15 @@
         const tdFinished = document.createElement("td");
         tdFinished.textContent = r.finished_at ? new Date(r.finished_at).toLocaleTimeString() : "—";
 
-        tr.append(tdId, tdStatus, tdStarted, tdFinished);
+        const tdTokens = document.createElement("td");
+        tdTokens.textContent = r.usage?.total_tokens != null ? r.usage.total_tokens.toLocaleString() : "—";
+
+        const tdCost = document.createElement("td");
+        tdCost.textContent = r.usage?.estimated_cost_usd != null
+          ? "$" + r.usage.estimated_cost_usd.toFixed(4)
+          : "—";
+
+        tr.append(tdId, tdStatus, tdStarted, tdFinished, tdTokens, tdCost);
         tbody.appendChild(tr);
       }
     }
