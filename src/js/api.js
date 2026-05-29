@@ -81,3 +81,24 @@ export const upsertMemory = (agentId, data) =>
   apiFetch(`/api/v1/agents/${agentId}/memory`, { method: "POST", body: JSON.stringify(data) });
 export const deleteMemory = (agentId, key) =>
   apiFetch(`/api/v1/agents/${agentId}/memory/${encodeURIComponent(key)}`, { method: "DELETE" });
+
+// Single agent
+export const getAgent = (id) => apiFetch(`/api/v1/agents/${id}`);
+
+// Agent config — schedules
+export const getSchedules = (agentId) =>
+  apiFetch(`/api/v1/agents/${agentId}/schedules`);
+export const createSchedule = (agentId, data) =>
+  apiFetch(`/api/v1/agents/${agentId}/schedules`, { method: "POST", body: JSON.stringify(data) });
+export const updateSchedule = (agentId, scheduleId, data) =>
+  apiFetch(`/api/v1/agents/${agentId}/schedules/${scheduleId}`, { method: "PUT", body: JSON.stringify(data) });
+export const deleteSchedule = (agentId, scheduleId) =>
+  apiFetch(`/api/v1/agents/${agentId}/schedules/${scheduleId}`, { method: "DELETE" });
+
+// Agent config — skills, interaction rules, guardrails
+export const updateSkills = (agentId, skills) =>
+  apiFetch(`/api/v1/agents/${agentId}/skills`, { method: "PUT", body: JSON.stringify({ skills }) });
+export const updateInteractionRules = (agentId, interaction_rules) =>
+  apiFetch(`/api/v1/agents/${agentId}/interaction-rules`, { method: "PUT", body: JSON.stringify({ interaction_rules }) });
+export const updateGuardrails = (agentId, guardrails) =>
+  apiFetch(`/api/v1/agents/${agentId}/guardrails`, { method: "PUT", body: JSON.stringify({ guardrails }) });

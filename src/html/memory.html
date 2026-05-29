@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agent Memory — Symphony</title>
+  <title>Agent Config — Symphony</title>
   <link rel="stylesheet" href="../css/symphony.css" />
 </head>
 <body>
@@ -11,9 +11,10 @@
 
   <main class="page">
     <div class="page-header">
-      <h1 class="page-title">Agent Memory</h1>
+      <h1 class="page-title">Agent Configuration</h1>
     </div>
 
+    <!-- Agent selector -->
     <div class="card" style="margin-bottom: 20px;">
       <div class="filter-bar">
         <label for="agent-select" style="font-size:13px; color: var(--text-secondary); white-space:nowrap;">Select Agent:</label>
@@ -23,72 +24,228 @@
       </div>
     </div>
 
-    <div id="memory-section" style="display:none;">
+    <!-- Config section (hidden until agent selected) -->
+    <div id="config-section" style="display:none;">
       <div class="card">
-        <!-- Add entry form -->
-        <form id="memory-form" class="inline-form visible" autocomplete="off" style="display:flex;">
-          <div class="form-group">
-            <label for="f-key">Key *</label>
-            <input id="f-key" type="text" required maxlength="255" placeholder="e.g. user_name" />
-          </div>
-          <div class="form-group" style="flex: 2;">
-            <label for="f-value">Value *</label>
-            <textarea id="f-value" required placeholder="Value to store"></textarea>
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Save</button>
-          </div>
-        </form>
 
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Key</th>
-                <th>Value</th>
-                <th>Updated</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody id="memory-tbody">
-              <tr><td colspan="4" class="empty-state">Loading...</td></tr>
-            </tbody>
-          </table>
+        <!-- Tab bar -->
+        <div class="tab-bar" role="tablist">
+          <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="memory">Memory</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" data-tab="schedules">Schedules</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" data-tab="skills">Skills</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" data-tab="interaction">Interaction Rules</button>
+          <button class="tab-btn"        role="tab" aria-selected="false" data-tab="guardrails">Guardrails</button>
         </div>
-        <div class="pagination">
-          <span class="pagination-info" id="page-info"></span>
-          <div class="pagination-controls">
-            <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
-            <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+
+        <!-- ── Memory tab ──────────────────────────────────────────────── -->
+        <div id="tab-memory" class="tab-panel active" role="tabpanel">
+          <form id="memory-form" class="inline-form visible" autocomplete="off" style="display:flex;">
+            <div class="form-group">
+              <label for="f-key">Key *</label>
+              <input id="f-key" type="text" required maxlength="255" placeholder="e.g. user_name" />
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label for="f-value">Value *</label>
+              <textarea id="f-value" required placeholder="Value to store"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Key</th><th>Value</th><th>Updated</th><th>Delete</th></tr>
+              </thead>
+              <tbody id="memory-tbody">
+                <tr><td colspan="4" class="empty-state">Select an agent to load memory.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination">
+            <span class="pagination-info" id="mem-page-info"></span>
+            <div class="pagination-controls">
+              <button class="btn btn-secondary btn-sm" id="btn-mem-prev" disabled>Previous</button>
+              <button class="btn btn-secondary btn-sm" id="btn-mem-next" disabled>Next</button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+
+        <!-- ── Schedules tab ───────────────────────────────────────────── -->
+        <div id="tab-schedules" class="tab-panel" role="tabpanel">
+          <!-- Add form -->
+          <form id="schedule-form" class="inline-form visible" autocomplete="off" style="display:flex;">
+            <div class="form-group">
+              <label for="s-label">Label *</label>
+              <input id="s-label" type="text" required maxlength="255" placeholder="Daily 9am" />
+            </div>
+            <div class="form-group">
+              <label for="s-cron">Cron Expression *</label>
+              <input id="s-cron" type="text" required maxlength="100" placeholder="0 9 * * 1-5" />
+            </div>
+            <div class="form-group checkbox-group" style="flex: 0 0 auto; align-items: center;">
+              <input id="s-enabled" type="checkbox" checked />
+              <label for="s-enabled">Enabled</label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+          </form>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Label</th><th>Cron</th><th>Enabled</th><th>Created</th><th>Delete</th></tr>
+              </thead>
+              <tbody id="schedules-tbody">
+                <tr><td colspan="5" class="empty-state">No schedules.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Skills tab ──────────────────────────────────────────────── -->
+        <div id="tab-skills" class="tab-panel" role="tabpanel">
+          <!-- Add form -->
+          <form id="skill-add-form" class="inline-form visible" autocomplete="off" style="display:flex;">
+            <div class="form-group">
+              <label for="sk-name">Name *</label>
+              <input id="sk-name" type="text" required maxlength="255" placeholder="Web search" />
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label for="sk-desc">Description</label>
+              <input id="sk-desc" type="text" placeholder="Optional description" />
+            </div>
+            <div class="form-group checkbox-group" style="flex: 0 0 auto; align-items: center;">
+              <input id="sk-enabled" type="checkbox" checked />
+              <label for="sk-enabled">Enabled</label>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="btn-add-skill" class="btn btn-secondary">Add</button>
+              <button type="submit" class="btn btn-primary">Save Skills</button>
+            </div>
+          </form>
+
+          <div class="skill-list" id="skills-list">
+            <div class="empty-state" style="padding: 32px 16px;">No skills added.</div>
+          </div>
+        </div>
+
+        <!-- ── Interaction Rules tab ───────────────────────────────────── -->
+        <div id="tab-interaction" class="tab-panel" role="tabpanel">
+          <form id="interaction-form" class="config-form" autocomplete="off">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="ir-temperature">Temperature (0.0 – 2.0)
+                  <span id="ir-temp-val" class="range-value">0.7</span>
+                </label>
+                <input id="ir-temperature" type="range" min="0" max="2" step="0.1" value="0.7"
+                  style="accent-color: var(--purple); width: 100%;" />
+              </div>
+              <div class="form-group">
+                <label for="ir-max-turns">Max Turns (1 – 100)</label>
+                <input id="ir-max-turns" type="number" min="1" max="100" value="10" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="ir-style">Response Style</label>
+                <select id="ir-style">
+                  <option value="concise">Concise</option>
+                  <option value="balanced" selected>Balanced</option>
+                  <option value="verbose">Verbose</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="ir-language">Language (code)</label>
+                <input id="ir-language" type="text" maxlength="10" value="en" placeholder="en" required />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save Interaction Rules</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ── Guardrails tab ──────────────────────────────────────────── -->
+        <div id="tab-guardrails" class="tab-panel" role="tabpanel">
+          <form id="guardrails-form" class="config-form" autocomplete="off">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="gr-max-tokens">Max Tokens Per Response (1 – 32768)</label>
+                <input id="gr-max-tokens" type="number" min="1" max="32768" value="2048" required />
+              </div>
+              <div class="form-group">
+                <label for="gr-rate-limit">Rate Limit Per Minute (1 – 1000)</label>
+                <input id="gr-rate-limit" type="number" min="1" max="1000" value="60" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="gr-filter">Content Filter Level</label>
+                <select id="gr-filter">
+                  <option value="off">Off</option>
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex: 2;">
+                <label for="gr-topics">Restricted Topics (comma-separated)</label>
+                <textarea id="gr-topics" placeholder="violence, adult content"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save Guardrails</button>
+            </div>
+          </form>
+        </div>
+
+      </div><!-- /.card -->
+    </div><!-- /#config-section -->
   </main>
 
   <script type="module">
     import { renderNav, showToast } from "../js/nav.js";
-    import { getAgents, getAgentMemory, upsertMemory, deleteMemory } from "../js/api.js";
+    import {
+      getAgents, getAgent,
+      getAgentMemory, upsertMemory, deleteMemory,
+      getSchedules, createSchedule, updateSchedule, deleteSchedule,
+      updateSkills, updateInteractionRules, updateGuardrails,
+    } from "../js/api.js";
 
     document.getElementById("nav-root").innerHTML = renderNav("memory.html");
 
-    const agentSelect = document.getElementById("agent-select");
-    const memorySection = document.getElementById("memory-section");
-    const tbody = document.getElementById("memory-tbody");
-    const form = document.getElementById("memory-form");
-    const pageInfo = document.getElementById("page-info");
-    const btnPrev = document.getElementById("btn-prev");
-    const btnNext = document.getElementById("btn-next");
+    // ── State ────────────────────────────────────────────────────────────────
+    const agentSelect    = document.getElementById("agent-select");
+    const configSection  = document.getElementById("config-section");
+    let currentAgentId   = null;
+    let currentAgent     = null;
+
+    // Memory pagination state
     const LIMIT = 20;
-    let skip = 0;
-    let total = 0;
-    let currentAgentId = null;
+    let memSkip  = 0;
+    let memTotal = 0;
 
-    function truncate(str, n) {
-      if (!str) return "";
-      return str.length > n ? str.slice(0, n) + "…" : str;
-    }
+    // Skills local state (mutated before batch-save)
+    let localSkills = [];
 
+    // ── Tab switching ─────────────────────────────────────────────────────────
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => {
+          b.classList.remove("active");
+          b.setAttribute("aria-selected", "false");
+        });
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        btn.setAttribute("aria-selected", "true");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    // ── Agent selector ────────────────────────────────────────────────────────
     async function loadAgents() {
       try {
         const data = await getAgents(0, 100);
@@ -104,24 +261,57 @@
       }
     }
 
+    agentSelect.addEventListener("change", async () => {
+      currentAgentId = agentSelect.value || null;
+      if (!currentAgentId) {
+        configSection.style.display = "none";
+        return;
+      }
+      configSection.style.display = "block";
+      try {
+        currentAgent = await getAgent(currentAgentId);
+      } catch (e) {
+        showToast(e.message, "error");
+        return;
+      }
+      memSkip = 0;
+      loadMemory();
+      loadSchedules();
+      loadSkills();
+      loadInteractionRules();
+      loadGuardrails();
+    });
+
+    // ── Memory tab ────────────────────────────────────────────────────────────
+    const memTbody  = document.getElementById("memory-tbody");
+    const memForm   = document.getElementById("memory-form");
+    const memPageInfo = document.getElementById("mem-page-info");
+    const btnMemPrev  = document.getElementById("btn-mem-prev");
+    const btnMemNext  = document.getElementById("btn-mem-next");
+
+    function truncate(str, n) {
+      if (!str) return "";
+      return str.length > n ? str.slice(0, n) + "…" : str;
+    }
+
     async function loadMemory() {
       if (!currentAgentId) return;
       try {
-        const data = await getAgentMemory(currentAgentId, skip, LIMIT);
-        total = data.total;
-        renderTable(data.items);
-        updatePagination();
+        const data = await getAgentMemory(currentAgentId, memSkip, LIMIT);
+        memTotal = data.total;
+        renderMemoryTable(data.items);
+        updateMemPagination();
       } catch (e) {
         showToast(e.message, "error");
       }
     }
 
-    function renderTable(items) {
+    function renderMemoryTable(items) {
+      memTbody.innerHTML = "";
       if (!items.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No memory entries.</td></tr>';
+        memTbody.innerHTML = '<tr><td colspan="4" class="empty-state">No memory entries.</td></tr>';
         return;
       }
-      tbody.innerHTML = "";
       for (const m of items) {
         const tr = document.createElement("tr");
 
@@ -131,30 +321,30 @@
         const valTd = document.createElement("td");
         valTd.textContent = truncate(m.value, 80);
 
-        const updatedTd = document.createElement("td");
-        updatedTd.textContent = new Date(m.updated_at || m.created_at).toLocaleString();
+        const updTd = document.createElement("td");
+        updTd.textContent = new Date(m.updated_at || m.created_at).toLocaleString();
 
         const delTd = document.createElement("td");
         const delBtn = document.createElement("button");
         delBtn.className = "btn btn-danger btn-sm";
         delBtn.textContent = "Delete";
-        delBtn.addEventListener("click", () => remove(m.key));
+        delBtn.addEventListener("click", () => removeMemory(m.key));
         delTd.appendChild(delBtn);
 
-        tr.append(keyTd, valTd, updatedTd, delTd);
-        tbody.appendChild(tr);
+        tr.append(keyTd, valTd, updTd, delTd);
+        memTbody.appendChild(tr);
       }
     }
 
-    function updatePagination() {
-      const from = total === 0 ? 0 : skip + 1;
-      const to = Math.min(skip + LIMIT, total);
-      pageInfo.textContent = `Showing ${from}–${to} of ${total}`;
-      btnPrev.disabled = skip === 0;
-      btnNext.disabled = skip + LIMIT >= total;
+    function updateMemPagination() {
+      const from = memTotal === 0 ? 0 : memSkip + 1;
+      const to   = Math.min(memSkip + LIMIT, memTotal);
+      memPageInfo.textContent = `Showing ${from}–${to} of ${memTotal}`;
+      btnMemPrev.disabled = memSkip === 0;
+      btnMemNext.disabled = memSkip + LIMIT >= memTotal;
     }
 
-    async function remove(key) {
+    async function removeMemory(key) {
       if (!confirm(`Delete memory key "${key}"?`)) return;
       try {
         await deleteMemory(currentAgentId, key);
@@ -165,35 +355,314 @@
       }
     }
 
-    agentSelect.addEventListener("change", () => {
-      currentAgentId = agentSelect.value || null;
-      skip = 0;
-      if (currentAgentId) {
-        memorySection.style.display = "block";
-        loadMemory();
-      } else {
-        memorySection.style.display = "none";
-      }
-    });
-
-    form.addEventListener("submit", async (e) => {
+    memForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!currentAgentId) return;
-      const key = document.getElementById("f-key").value.trim();
+      const key   = document.getElementById("f-key").value.trim();
       const value = document.getElementById("f-value").value.trim();
       try {
         await upsertMemory(currentAgentId, { key, value });
         showToast("Memory saved.");
-        form.reset();
+        memForm.reset();
         await loadMemory();
       } catch (e) {
         showToast(e.message, "error");
       }
     });
 
-    btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); loadMemory(); });
-    btnNext.addEventListener("click", () => { skip += LIMIT; loadMemory(); });
+    btnMemPrev.addEventListener("click", () => { memSkip = Math.max(0, memSkip - LIMIT); loadMemory(); });
+    btnMemNext.addEventListener("click", () => { memSkip += LIMIT; loadMemory(); });
 
+    // ── Schedules tab ─────────────────────────────────────────────────────────
+    const schedulesTbody = document.getElementById("schedules-tbody");
+    const scheduleForm   = document.getElementById("schedule-form");
+
+    async function loadSchedules() {
+      if (!currentAgentId) return;
+      try {
+        const data = await getSchedules(currentAgentId);
+        renderSchedulesTable(data.items);
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    function renderSchedulesTable(items) {
+      schedulesTbody.innerHTML = "";
+      if (!items.length) {
+        schedulesTbody.innerHTML = '<tr><td colspan="5" class="empty-state">No schedules configured.</td></tr>';
+        return;
+      }
+      for (const s of items) {
+        const tr = document.createElement("tr");
+        tr.dataset.scheduleId = s.id;
+
+        const labelTd = document.createElement("td");
+        labelTd.textContent = s.label;
+
+        const cronTd = document.createElement("td");
+        cronTd.textContent = s.cron_expression;
+
+        const enabledTd = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = s.enabled ? "badge badge-teal" : "badge badge-grey";
+        badge.textContent = s.enabled ? "Enabled" : "Disabled";
+        enabledTd.appendChild(badge);
+
+        const createdTd = document.createElement("td");
+        createdTd.textContent = new Date(s.created_at).toLocaleString();
+
+        const actionsTd = document.createElement("td");
+        actionsTd.style.display = "flex";
+        actionsTd.style.gap = "6px";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn btn-secondary btn-sm";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openInlineEdit(tr, s));
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "btn btn-danger btn-sm";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", () => removeSchedule(s.id));
+
+        actionsTd.append(editBtn, delBtn);
+        tr.append(labelTd, cronTd, enabledTd, createdTd, actionsTd);
+        schedulesTbody.appendChild(tr);
+      }
+    }
+
+    function openInlineEdit(tr, s) {
+      // Replace row cells with editable inputs
+      const labelInput = document.createElement("input");
+      labelInput.type = "text"; labelInput.value = s.label; labelInput.maxLength = 255;
+      labelInput.style.cssText = "padding:4px 8px;border:1px solid var(--border-strong);border-radius:4px;font-size:13px;width:100%;";
+
+      const cronInput = document.createElement("input");
+      cronInput.type = "text"; cronInput.value = s.cron_expression; cronInput.maxLength = 100;
+      cronInput.style.cssText = "padding:4px 8px;border:1px solid var(--border-strong);border-radius:4px;font-size:13px;width:100%;";
+
+      const enabledCheck = document.createElement("input");
+      enabledCheck.type = "checkbox"; enabledCheck.checked = s.enabled;
+      enabledCheck.style.accentColor = "var(--purple)";
+
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "btn btn-primary btn-sm";
+      saveBtn.textContent = "Update";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn btn-secondary btn-sm";
+      cancelBtn.textContent = "Cancel";
+
+      tr.cells[0].innerHTML = ""; tr.cells[0].appendChild(labelInput);
+      tr.cells[1].innerHTML = ""; tr.cells[1].appendChild(cronInput);
+      tr.cells[2].innerHTML = ""; tr.cells[2].appendChild(enabledCheck);
+      tr.cells[3].textContent = "";
+      tr.cells[4].innerHTML = "";
+      const actDiv = document.createElement("div");
+      actDiv.style.display = "flex"; actDiv.style.gap = "6px";
+      actDiv.append(saveBtn, cancelBtn);
+      tr.cells[4].appendChild(actDiv);
+
+      saveBtn.addEventListener("click", async () => {
+        const label = labelInput.value.trim();
+        const cron  = cronInput.value.trim();
+        if (!label || !cron) { showToast("Label and cron expression are required.", "error"); return; }
+        try {
+          await updateSchedule(currentAgentId, s.id, {
+            label,
+            cron_expression: cron,
+            enabled: enabledCheck.checked,
+          });
+          showToast("Schedule updated.");
+          await loadSchedules();
+        } catch (e) {
+          showToast(e.message, "error");
+        }
+      });
+
+      cancelBtn.addEventListener("click", () => loadSchedules());
+    }
+
+    async function removeSchedule(scheduleId) {
+      if (!confirm("Delete this schedule?")) return;
+      try {
+        await deleteSchedule(currentAgentId, scheduleId);
+        showToast("Schedule deleted.");
+        await loadSchedules();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    }
+
+    scheduleForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentAgentId) return;
+      const label = document.getElementById("s-label").value.trim();
+      const cron  = document.getElementById("s-cron").value.trim();
+      const enabled = document.getElementById("s-enabled").checked;
+      try {
+        await createSchedule(currentAgentId, { label, cron_expression: cron, enabled });
+        showToast("Schedule added.");
+        scheduleForm.reset();
+        document.getElementById("s-enabled").checked = true;
+        await loadSchedules();
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    // ── Skills tab ────────────────────────────────────────────────────────────
+    const skillsList     = document.getElementById("skills-list");
+    const skillAddForm   = document.getElementById("skill-add-form");
+    const btnAddSkill    = document.getElementById("btn-add-skill");
+
+    function loadSkills() {
+      localSkills = (currentAgent && Array.isArray(currentAgent.skills))
+        ? currentAgent.skills.map(s => ({ ...s }))
+        : [];
+      renderSkillsList();
+    }
+
+    function renderSkillsList() {
+      skillsList.innerHTML = "";
+      if (!localSkills.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.style.padding = "32px 16px";
+        empty.textContent = "No skills added.";
+        skillsList.appendChild(empty);
+        return;
+      }
+      for (let i = 0; i < localSkills.length; i++) {
+        const sk = localSkills[i];
+        const row = document.createElement("div");
+        row.className = "skill-row";
+
+        const enabledCheck = document.createElement("input");
+        enabledCheck.type = "checkbox";
+        enabledCheck.checked = sk.enabled;
+        enabledCheck.style.accentColor = "var(--purple)";
+        enabledCheck.setAttribute("aria-label", "Skill enabled");
+        enabledCheck.addEventListener("change", () => { localSkills[i].enabled = enabledCheck.checked; });
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "skill-name";
+        nameSpan.textContent = sk.name;
+
+        const descSpan = document.createElement("span");
+        descSpan.className = "skill-desc";
+        descSpan.textContent = sk.description || "";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn btn-danger btn-sm";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+          localSkills.splice(i, 1);
+          renderSkillsList();
+        });
+
+        row.append(enabledCheck, nameSpan, descSpan, removeBtn);
+        skillsList.appendChild(row);
+      }
+    }
+
+    btnAddSkill.addEventListener("click", () => {
+      const name = document.getElementById("sk-name").value.trim();
+      const desc = document.getElementById("sk-desc").value.trim();
+      const enabled = document.getElementById("sk-enabled").checked;
+      if (!name) { showToast("Skill name is required.", "error"); return; }
+      localSkills.push({ name, description: desc || null, enabled });
+      document.getElementById("sk-name").value = "";
+      document.getElementById("sk-desc").value = "";
+      document.getElementById("sk-enabled").checked = true;
+      renderSkillsList();
+    });
+
+    skillAddForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentAgentId) return;
+      try {
+        const updated = await updateSkills(currentAgentId, localSkills);
+        currentAgent = updated;
+        showToast("Skills saved.");
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    // ── Interaction Rules tab ─────────────────────────────────────────────────
+    const irForm  = document.getElementById("interaction-form");
+    const irTempInput = document.getElementById("ir-temperature");
+    const irTempVal   = document.getElementById("ir-temp-val");
+
+    irTempInput.addEventListener("input", () => {
+      irTempVal.textContent = parseFloat(irTempInput.value).toFixed(1);
+    });
+
+    function loadInteractionRules() {
+      const ir = (currentAgent && currentAgent.interaction_rules) || {};
+      irTempInput.value = ir.temperature !== undefined ? ir.temperature : 0.7;
+      irTempVal.textContent = parseFloat(irTempInput.value).toFixed(1);
+      document.getElementById("ir-max-turns").value = ir.max_turns !== undefined ? ir.max_turns : 10;
+      document.getElementById("ir-style").value = ir.response_style || "balanced";
+      document.getElementById("ir-language").value = ir.language || "en";
+    }
+
+    irForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentAgentId) return;
+      const payload = {
+        temperature: parseFloat(irTempInput.value),
+        max_turns: parseInt(document.getElementById("ir-max-turns").value, 10),
+        response_style: document.getElementById("ir-style").value,
+        language: document.getElementById("ir-language").value.trim(),
+      };
+      try {
+        const updated = await updateInteractionRules(currentAgentId, payload);
+        currentAgent = updated;
+        showToast("Interaction rules saved.");
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    // ── Guardrails tab ────────────────────────────────────────────────────────
+    const grForm = document.getElementById("guardrails-form");
+
+    function loadGuardrails() {
+      const gr = (currentAgent && currentAgent.guardrails) || {};
+      document.getElementById("gr-max-tokens").value  = gr.max_tokens_per_response !== undefined ? gr.max_tokens_per_response : 2048;
+      document.getElementById("gr-rate-limit").value  = gr.rate_limit_per_minute   !== undefined ? gr.rate_limit_per_minute   : 60;
+      document.getElementById("gr-filter").value      = gr.content_filter_level    || "medium";
+      const topics = Array.isArray(gr.restricted_topics) ? gr.restricted_topics.join(", ") : (gr.restricted_topics || "");
+      document.getElementById("gr-topics").value = topics;
+    }
+
+    grForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!currentAgentId) return;
+      const topicsRaw = document.getElementById("gr-topics").value;
+      const restricted_topics = topicsRaw
+        .split(",")
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+      const payload = {
+        max_tokens_per_response: parseInt(document.getElementById("gr-max-tokens").value, 10),
+        rate_limit_per_minute:   parseInt(document.getElementById("gr-rate-limit").value, 10),
+        content_filter_level:    document.getElementById("gr-filter").value,
+        restricted_topics,
+      };
+      try {
+        const updated = await updateGuardrails(currentAgentId, payload);
+        currentAgent = updated;
+        showToast("Guardrails saved.");
+      } catch (e) {
+        showToast(e.message, "error");
+      }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
     loadAgents();
   </script>
 </body>

@@ -4,7 +4,7 @@ export function renderNav(activePage) {
     { href: "workflows.html", label: "Workflows", icon: "ti-hierarchy" },
     { href: "messages.html", label: "Messages", icon: "ti-messages" },
     { href: "logs.html", label: "Logs", icon: "ti-list-details" },
-    { href: "memory.html", label: "Memory", icon: "ti-brain" },
+    { href: "memory.html", label: "Config", icon: "ti-settings" },
   ];
 
   const links = pages
