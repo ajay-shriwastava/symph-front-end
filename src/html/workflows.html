@@ -13,6 +13,18 @@
     <!-- ------------------------------------------------------------------ -->
     <!-- Page header + workflow list                                         -->
     <!-- ------------------------------------------------------------------ -->
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Templates panel                                                    -->
+    <!-- ------------------------------------------------------------------ -->
+    <div class="card" style="margin-bottom:20px;" id="templates-card">
+      <div class="page-header" style="margin-bottom:12px;">
+        <h2 class="page-title" style="font-size:15px;">Workflow Templates</h2>
+      </div>
+      <div id="templates-grid" style="display:flex;gap:16px;flex-wrap:wrap;">
+        <span style="color:var(--text-tertiary);font-size:13px;">Loading templates…</span>
+      </div>
+    </div>
+
     <div class="page-header">
       <h1 class="page-title">Workflows</h1>
       <button class="btn btn-primary" id="btn-new">+ New Workflow</button>
@@ -81,6 +93,9 @@
           <button class="btn btn-secondary btn-sm" id="btn-zoom-in">+</button>
           <button class="btn btn-secondary btn-sm" id="btn-zoom-out">-</button>
           <button class="btn btn-secondary btn-sm" id="btn-zoom-reset">Fit</button>
+          <span class="toolbar-sep"></span>
+          <label class="toolbar-label" for="input-max-loops" style="font-size:12px;color:var(--text-secondary);">Max Loops</label>
+          <input type="number" id="input-max-loops" class="toolbar-input" min="1" max="100" value="20" style="width:60px;padding:2px 6px;font-size:12px;border:1px solid var(--border);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);">
           <span id="builder-status" style="margin-left:auto;font-size:12px;color:var(--text-tertiary);"></span>
         </div>
 
@@ -168,6 +183,7 @@
       getAgents,
       getWorkflows, createWorkflow, updateWorkflow, deleteWorkflow,
       runWorkflow, getWorkflowRuns,
+      getTemplates, instantiateTemplate,
     } from "../js/api.js";
 
     document.getElementById("nav-root").innerHTML = renderNav("workflows.html");
@@ -343,11 +359,71 @@
 
     let agentsList = [];  // loaded once per builder open
 
+    // -----------------------------------------------------------------------
+    // Templates
+    // -----------------------------------------------------------------------
+    async function loadTemplates() {
+      const grid = document.getElementById("templates-grid");
+      try {
+        const templates = await getTemplates();
+        if (!templates.length) {
+          grid.innerHTML = '<span style="color:var(--text-tertiary);font-size:13px;">No templates available.</span>';
+          return;
+        }
+        grid.innerHTML = "";
+        for (const t of templates) {
+          const card = document.createElement("div");
+          card.style.cssText = "border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;min-width:260px;max-width:340px;background:var(--bg-surface);";
+          const title = document.createElement("div");
+          title.style.cssText = "font-weight:600;font-size:13px;margin-bottom:4px;";
+          title.textContent = t.name;
+          const desc = document.createElement("div");
+          desc.style.cssText = "font-size:12px;color:var(--text-secondary);margin-bottom:10px;line-height:1.5;";
+          desc.textContent = t.description;
+          if (t.schedule) {
+            const badge = document.createElement("span");
+            badge.className = "badge badge-teal";
+            badge.style.marginBottom = "10px";
+            badge.textContent = "⏱ " + t.schedule;
+            card.appendChild(title);
+            card.appendChild(desc);
+            card.appendChild(badge);
+          } else {
+            card.appendChild(title);
+            card.appendChild(desc);
+          }
+          const btn = document.createElement("button");
+          btn.className = "btn btn-primary btn-sm";
+          btn.style.marginTop = "10px";
+          btn.textContent = "Use Template";
+          btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            btn.textContent = "Creating…";
+            try {
+              const wf = await instantiateTemplate(t.id);
+              showToast(`"${wf.name}" created and scheduled.`);
+              await load();
+            } catch (e) {
+              showToast(e.message, "error");
+            } finally {
+              btn.disabled = false;
+              btn.textContent = "Use Template";
+            }
+          });
+          card.appendChild(btn);
+          grid.appendChild(card);
+        }
+      } catch (e) {
+        grid.innerHTML = `<span style="color:var(--red);font-size:13px;">Failed to load templates: ${e.message}</span>`;
+      }
+    }
+
     // Node geometry constants
     const NODE = {
       start:     { w: 56, h: 56, rx: 28 },
       end:       { w: 56, h: 56, rx: 28 },
       agent:     { w: 130, h: 52, rx: 8 },
+      tool:      { w: 130, h: 52, rx: 8 },
       condition: { w: 100, h: 52, rx: 4 },
     };
 
@@ -365,6 +441,7 @@
       const gd = wf.graph_definition || {};
       nodes = JSON.parse(JSON.stringify(gd.nodes || []));
       edges = JSON.parse(JSON.stringify(gd.edges || []));
+      document.getElementById("input-max-loops").value = gd.max_loops != null ? gd.max_loops : 20;
       selectedNodeId = null;
       selectedEdgeId = null;
       svgScale = 1; svgPanX = 0; svgPanY = 0;
@@ -468,8 +545,21 @@
         poly.setAttribute("stroke", selectedNodeId === node.id ? "var(--purple)" : "var(--amber)");
         poly.setAttribute("stroke-width", "1.5");
         g.appendChild(poly);
+      } else if (node.type === "tool") {
+        // Tool node — teal fill to distinguish from agent nodes
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("class", "node-body");
+        rect.setAttribute("x", node.x);
+        rect.setAttribute("y", node.y);
+        rect.setAttribute("width", geom.w);
+        rect.setAttribute("height", geom.h);
+        rect.setAttribute("rx", geom.rx);
+        rect.setAttribute("fill", "var(--teal-dim, #e6f7f7)");
+        rect.setAttribute("stroke", selectedNodeId === node.id ? "var(--purple)" : "var(--teal)");
+        rect.setAttribute("stroke-width", "1.5");
+        g.appendChild(rect);
       } else {
-        // Rounded rect
+        // Rounded rect (agent and unknown types)
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("class", "node-body");
         rect.setAttribute("x", node.x);
@@ -494,14 +584,14 @@
       lbl.textContent = node.label || node.type;
       g.appendChild(lbl);
 
-      // Type sub-label for agent nodes
-      if (node.type === "agent") {
+      // Type sub-label for agent and tool nodes
+      if (node.type === "agent" || node.type === "tool") {
         const sub = document.createElementNS("http://www.w3.org/2000/svg", "text");
         sub.setAttribute("class", "node-type-label");
         sub.setAttribute("x", geom.cx);
         sub.setAttribute("y", node.y + geom.h - 6);
         sub.setAttribute("text-anchor", "middle");
-        sub.textContent = "agent";
+        sub.textContent = node.type === "tool" ? (node.tool_name || "tool") : "agent";
         g.appendChild(sub);
       }
 
@@ -931,7 +1021,7 @@
     // -----------------------------------------------------------------------
     document.getElementById("btn-save").addEventListener("click", async () => {
       if (!openWorkflowId) return;
-      const graph_definition = { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) };
+      const graph_definition = { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)), max_loops: parseInt(document.getElementById("input-max-loops").value) || 20 };
       try {
         await updateWorkflow(openWorkflowId, { graph_definition });
         document.getElementById("builder-status").textContent = "Saved";
@@ -1130,6 +1220,7 @@
     // -----------------------------------------------------------------------
     // Boot
     // -----------------------------------------------------------------------
+    loadTemplates();
     load();
   </script>
 </body>

@@ -95,6 +95,11 @@ export const updateSchedule = (agentId, scheduleId, data) =>
 export const deleteSchedule = (agentId, scheduleId) =>
   apiFetch(`/api/v1/agents/${agentId}/schedules/${scheduleId}`, { method: "DELETE" });
 
+// Templates
+export const getTemplates = () => apiFetch("/api/v1/templates");
+export const instantiateTemplate = (templateId) =>
+  apiFetch(`/api/v1/templates/${templateId}/instantiate`, { method: "POST" });
+
 // Agent config — skills, interaction rules, guardrails
 export const updateSkills = (agentId, skills) =>
   apiFetch(`/api/v1/agents/${agentId}/skills`, { method: "PUT", body: JSON.stringify({ skills }) });
