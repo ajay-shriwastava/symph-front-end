@@ -52,10 +52,11 @@ export const getWorkflowRun = (workflowId, runId) =>
   apiFetch(`/api/v1/workflows/${workflowId}/runs/${runId}`);
 
 // Messages
-export const getMessages = ({ session_id, agent_id, skip = 0, limit = 20 } = {}) => {
+export const getMessages = ({ session_id, agent_id, role, skip = 0, limit = 20 } = {}) => {
   const p = new URLSearchParams({ skip, limit });
   if (session_id) p.set("session_id", session_id);
   if (agent_id) p.set("agent_id", agent_id);
+  if (role) p.set("role", role);
   return apiFetch(`/api/v1/messages?${p}`);
 };
 export const createMessage = (data) =>

@@ -5,6 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Messages — Symphony</title>
   <link rel="stylesheet" href="../css/symphony.css" />
+  <style>
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      border-bottom: 2px solid var(--border, #e2e8f0);
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-muted, #64748b);
+      font-weight: 500;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .tab-btn:hover {
+      color: var(--text, #1e293b);
+    }
+    .tab-btn.active {
+      color: var(--primary, #6366f1);
+      border-bottom-color: var(--primary, #6366f1);
+    }
+    .badge-agent {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    #handoffs-panel {
+      display: none;
+    }
+    #handoff-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .handoff-card {
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: var(--bg-card, #fff);
+    }
+    .handoff-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .handoff-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted, #64748b);
+      margin-left: auto;
+    }
+    .handoff-content {
+      font-size: 0.9rem;
+      color: var(--text, #1e293b);
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .handoffs-empty {
+      color: var(--text-muted, #64748b);
+      text-align: center;
+      padding: 32px 0;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
 <body>
   <div id="nav-root"></div>
@@ -15,35 +85,50 @@
     </div>
 
     <div class="card">
-      <div class="filter-bar">
-        <input id="f-session" type="text" placeholder="Session ID" style="width: 280px;" />
-        <input id="f-agent" type="text" placeholder="Agent ID" style="width: 280px;" />
-        <button class="btn btn-secondary" id="btn-apply">Apply</button>
-        <button class="btn btn-secondary" id="btn-clear">Clear</button>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="all">All Messages</button>
+        <button class="tab-btn" data-tab="handoffs">Agent Handoffs</button>
       </div>
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Role</th>
-              <th>Content</th>
-              <th>Agent ID</th>
-              <th>Session ID</th>
-              <th>Created</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody id="msg-tbody">
-            <tr><td colspan="6" class="empty-state">Loading...</td></tr>
-          </tbody>
-        </table>
+      <!-- All Messages panel -->
+      <div id="all-panel">
+        <div class="filter-bar">
+          <input id="f-session" type="text" placeholder="Session ID" style="width: 280px;" />
+          <input id="f-agent" type="text" placeholder="Agent ID" style="width: 280px;" />
+          <button class="btn btn-secondary" id="btn-apply">Apply</button>
+          <button class="btn btn-secondary" id="btn-clear">Clear</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Content</th>
+                <th>Agent ID</th>
+                <th>Session ID</th>
+                <th>Created</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
+            <tbody id="msg-tbody">
+              <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span class="pagination-info" id="page-info"></span>
+          <div class="pagination-controls">
+            <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
+            <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+          </div>
+        </div>
       </div>
-      <div class="pagination">
-        <span class="pagination-info" id="page-info"></span>
-        <div class="pagination-controls">
-          <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>Previous</button>
-          <button class="btn btn-secondary btn-sm" id="btn-next" disabled>Next</button>
+
+      <!-- Agent Handoffs panel -->
+      <div id="handoffs-panel">
+        <div id="handoff-list">
+          <div class="handoffs-empty">Loading handoffs...</div>
         </div>
       </div>
     </div>
@@ -51,7 +136,7 @@
 
   <script type="module">
     import { renderNav, showToast } from "../js/nav.js";
-    import { getMessages, deleteMessage } from "../js/api.js";
+    import { getMessages, getAgents, deleteMessage } from "../js/api.js";
 
     document.getElementById("nav-root").innerHTML = renderNav("messages.html");
 
@@ -59,6 +144,9 @@
     const pageInfo = document.getElementById("page-info");
     const btnPrev = document.getElementById("btn-prev");
     const btnNext = document.getElementById("btn-next");
+    const allPanel = document.getElementById("all-panel");
+    const handoffsPanel = document.getElementById("handoffs-panel");
+    const handoffList = document.getElementById("handoff-list");
     const LIMIT = 20;
     let skip = 0;
     let total = 0;
@@ -69,12 +157,15 @@
       assistant: "badge-teal",
       system: "badge-grey",
       tool: "badge-amber",
+      agent: "badge-agent",
     };
 
     function truncate(str, n) {
       if (!str) return "";
       return str.length > n ? str.slice(0, n) + "…" : str;
     }
+
+    // --- All Messages tab ---
 
     async function load() {
       try {
@@ -165,6 +256,89 @@
 
     btnPrev.addEventListener("click", () => { skip = Math.max(0, skip - LIMIT); load(); });
     btnNext.addEventListener("click", () => { skip += LIMIT; load(); });
+
+    // --- Agent Handoffs tab ---
+
+    async function loadHandoffs() {
+      handoffList.innerHTML = '<div class="handoffs-empty">Loading handoffs...</div>';
+      try {
+        const [msgData, agentsData] = await Promise.all([
+          getMessages({ role: "agent", limit: 50 }),
+          getAgents(0, 200),
+        ]);
+
+        const agentNameMap = {};
+        for (const a of (agentsData.items || [])) {
+          agentNameMap[a.id] = a.name;
+        }
+
+        const items = msgData.items || [];
+        if (!items.length) {
+          handoffList.innerHTML = '<div class="handoffs-empty">No agent handoffs recorded yet. Run a workflow with linked agents to see handoffs here.</div>';
+          return;
+        }
+
+        handoffList.innerHTML = "";
+        for (const m of items) {
+          const agentName = agentNameMap[m.agent_id] || m.agent_id.slice(0, 8) + "…";
+          const sessionShort = m.session_id ? m.session_id.slice(0, 8) + "…" : "—";
+          const ts = new Date(m.created_at).toLocaleString();
+
+          const card = document.createElement("div");
+          card.className = "handoff-card";
+
+          const header = document.createElement("div");
+          header.className = "handoff-header";
+
+          const badge = document.createElement("span");
+          badge.className = "badge badge-agent";
+          badge.textContent = "agent";
+
+          const name = document.createElement("strong");
+          name.textContent = agentName;
+
+          const meta = document.createElement("span");
+          meta.className = "handoff-meta";
+          meta.textContent = `Run: ${sessionShort} · ${ts}`;
+
+          header.append(badge, name, meta);
+
+          const content = document.createElement("div");
+          content.className = "handoff-content";
+          content.textContent = m.content;
+
+          card.append(header, content);
+          handoffList.appendChild(card);
+        }
+      } catch (e) {
+        showToast(e.message, "error");
+        handoffList.innerHTML = '<div class="handoffs-empty">Failed to load handoffs.</div>';
+      }
+    }
+
+    // --- Tab switching ---
+
+    let handoffsLoaded = false;
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const tab = btn.dataset.tab;
+        if (tab === "all") {
+          allPanel.style.display = "";
+          handoffsPanel.style.display = "none";
+        } else {
+          allPanel.style.display = "none";
+          handoffsPanel.style.display = "block";
+          if (!handoffsLoaded) {
+            handoffsLoaded = true;
+            loadHandoffs();
+          }
+        }
+      });
+    });
 
     load();
   </script>
