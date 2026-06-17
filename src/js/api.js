@@ -1,4 +1,4 @@
-const BASE_URL = "http://127.0.0.1:8000";
+const BASE_URL = ""; // nginx proxies /api/ → backend:8000 in Docker; set to http://localhost:8000 for local dev without Docker
 
 function getToken() {
   return localStorage.getItem("symphony_token") || "dev-token";
