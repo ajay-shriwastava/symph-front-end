@@ -269,11 +269,16 @@ tr:hover td { background: #faf9f7; }
   fill: var(--purple);
   stroke: #fff;
   stroke-width: 1.5px;
-  opacity: 0;
+  opacity: 0.35;
   transition: opacity .12s;
 }
 .wf-node:hover .port, .port.visible { opacity: 1; }
 .port.port-in { fill: var(--teal); }
+.port-hit {
+  fill: transparent;
+  cursor: crosshair;
+  stroke: none;
+}
 
 /* Edges */
 .wf-edge { fill: none; stroke: var(--border-strong); stroke-width: 1.5px; }

@@ -107,6 +107,7 @@
             <div class="palette-chip" data-type="start"     draggable="true">Start</div>
             <div class="palette-chip" data-type="agent"     draggable="true">Agent</div>
             <div class="palette-chip" data-type="condition" draggable="true">Condition</div>
+            <div class="palette-chip" data-type="tool"      draggable="true">Tool</div>
             <div class="palette-chip" data-type="end"       draggable="true">End</div>
           </div>
 
@@ -603,13 +604,25 @@
         c.setAttribute("class", "port" + (portKey === "in" ? " port-in" : ""));
         c.setAttribute("cx", pos.x);
         c.setAttribute("cy", pos.y);
-        c.setAttribute("r", "5");
+        c.setAttribute("r", "6");
         c.dataset.nodeId = node.id;
         c.dataset.portKey = portKey;
         if (pos.branch) c.dataset.branch = pos.branch;
 
         if (portKey !== "in") {
           c.addEventListener("mousedown", onPortMouseDown);
+
+          // Large invisible hit area so the port is easy to grab
+          const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          hit.setAttribute("class", "port-hit");
+          hit.setAttribute("cx", pos.x);
+          hit.setAttribute("cy", pos.y);
+          hit.setAttribute("r", "16");
+          hit.dataset.nodeId = node.id;
+          hit.dataset.portKey = portKey;
+          if (pos.branch) hit.dataset.branch = pos.branch;
+          hit.addEventListener("mousedown", onPortMouseDown);
+          g.appendChild(hit);
         }
         g.appendChild(c);
       }
@@ -860,7 +873,7 @@
     }
 
     function addNode(type, x, y) {
-      const labels = { start:"Start", end:"End", agent:"Agent", condition:"Check" };
+      const labels = { start:"Start", end:"End", agent:"Agent", condition:"Check", tool:"Tool" };
       const node = { id: genId(type), type, x, y, label: labels[type] || type };
       nodes.push(node);
       render();
@@ -954,6 +967,46 @@
         agentDiv.appendChild(agentLbl);
         agentDiv.appendChild(sel);
         fields.appendChild(agentDiv);
+      }
+
+      if (node.type === "tool") {
+        const PIPELINE_TOOLS = [
+          "csv_scanner",
+          "data_quality",
+          "db_ingestor",
+          "data_profiler",
+          "job_stats_collector",
+          "report_publisher",
+        ];
+        const sel = document.createElement("select");
+        sel.style.cssText = "padding:6px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:12px;font-family:var(--font);background:var(--bg-base);width:100%;margin-top:4px;";
+        const blank = document.createElement("option");
+        blank.value = "";
+        blank.textContent = "— select tool —";
+        sel.appendChild(blank);
+        for (const t of PIPELINE_TOOLS) {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          if (t === node.tool_name) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener("change", () => {
+          node.tool_name = sel.value || undefined;
+          if (sel.value && (!node.label || node.label === "Tool")) {
+            node.label = sel.value;
+            render();
+            showNodeConfig(node);
+            return;
+          }
+        });
+        const toolDiv = document.createElement("div");
+        toolDiv.className = "config-field";
+        const toolLbl = document.createElement("label");
+        toolLbl.textContent = "Tool";
+        toolDiv.appendChild(toolLbl);
+        toolDiv.appendChild(sel);
+        fields.appendChild(toolDiv);
       }
 
       if (node.type === "condition") {
