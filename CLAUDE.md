@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Frontend for **Symphony** — an Agentic AI Orchestration Platform. Currently a vanilla Vite + TypeScript scaffold (no framework).
+Frontend for **Symphony** — an Agentic AI Orchestration Platform. React 19 SPA with TypeScript, built with Vite.
 
 ## Commands
 
 ```bash
 npm run dev       # Start dev server with HMR
-npm run build     # Type-check (tsc) then bundle (vite build)
+npm run build     # Bundle with Vite (includes TS transpilation)
 npm run preview   # Preview production build locally
 ```
 
@@ -18,24 +18,41 @@ There is no test runner configured yet.
 
 ## Architecture
 
-- **Entry**: `index.html` redirects to `src/html/agents.html`
-- **Pages**: HTML files live in `src/html/` — each page is self-contained with an inline `<script type="module">`
-- **Scripts**: JS and TS modules live in `src/js/` — `api.js` (API client), `nav.js` (nav + toast), `main.ts` (Vite scaffold), `counter.ts`
-- **Styles**: `src/css/symphony.css` (app theme), `src/css/style.css` (Vite scaffold styles)
-- **Assets**: Static files in `public/` (SVG sprite at `public/icons.svg`); imported assets in `src/assets/`
+- **Entry**: `index.html` → `src/main.tsx` → `src/App.tsx`
+- **Routing**: React Router v7 with client-side routing
+- **State**: React Context (ToastContext) + local component state
+- **API**: Centralized fetch client at `src/js/api.ts` with typed interfaces for all models
+- **Styles**: `src/css/symphony.css` — CSS custom properties design system
+- **Assets**: Static files in `public/` (favicon, icons sprite)
 
 ### `src/` layout
 ```
 src/
-  html/      ← agents.html, workflows.html, messages.html, logs.html, memory.html
-  css/       ← symphony.css, style.css
-  js/        ← api.js, nav.js, main.ts, counter.ts
-  assets/    ← hero.png, typescript.svg, vite.svg
+  main.tsx                ← React entry point
+  App.tsx                 ← BrowserRouter + route definitions
+  components/             ← Nav.tsx, Pagination.tsx
+  context/                ← ToastContext.tsx
+  pages/                  ← Agents.tsx, AgentConfig.tsx, Logs.tsx, Messages.tsx, Workflows.tsx
+  js/                     ← api.ts (API client + all TypeScript interfaces)
+  css/                    ← symphony.css (app theme)
 ```
+
+### Routes
+| Path | Page | Purpose |
+|------|------|---------|
+| `/agents` | Agents | CRUD agents with expandable detail rows |
+| `/workflows` | Workflows | Visual DAG builder, run execution via WebSocket, templates |
+| `/messages` | Messages | Message history + agent handoffs tab |
+| `/logs` | Logs | Filterable log viewer |
+| `/config` | AgentConfig | Per-agent config: memory, schedules, skills, interaction rules, guardrails |
+
+### API Layer (`src/js/api.ts`)
+All backend communication goes through `apiFetch<T>()` — a generic typed wrapper that handles auth headers, error extraction, and JSON parsing. Every endpoint function returns a properly typed `Promise<T>`. Model interfaces (`Agent`, `Workflow`, `GraphNode`, `Message`, `LogEntry`, etc.) are exported from this file.
 
 ## TypeScript Config
 
-- `moduleResolution: "bundler"` — import paths can include `.ts` extensions
+- `moduleResolution: "bundler"` — import paths can include `.ts`/`.tsx` extensions
 - `noEmit: true` — Vite handles bundling; `tsc` is type-check only
 - Strict unused variable/parameter checks enabled (`noUnusedLocals`, `noUnusedParameters`)
+- `verbatimModuleSyntax: true` — use `import type` for type-only imports
 - `erasableSyntaxOnly: true` — no decorators or other non-erasable TypeScript syntax
