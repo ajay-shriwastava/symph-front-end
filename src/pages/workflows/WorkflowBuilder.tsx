@@ -64,6 +64,13 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [builderStatus, setBuilderStatus] = useState("");
 
+  // Run log auto-scroll
+  const runLogBodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = runLogBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [runLog]);
+
   // Refs to avoid stale closures in event handlers
   const nodesRef = useRef(nodes);
   const panRef = useRef<Point>({ x: 0, y: 0 });
@@ -704,7 +711,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
             <span className="run-log-toggle">{runLogVisible ? "▼" : "▲"}</span>
           </div>
           {runLogVisible && (
-            <div className="run-log-body">
+            <div className="run-log-body" ref={runLogBodyRef}>
               {runLog.map((line, i) => (
                 <div key={i} className={`log-line ${line.cls}`}>
                   {line.text}
