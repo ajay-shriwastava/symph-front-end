@@ -42,7 +42,6 @@ export interface Guardrails {
 export interface Agent {
   id: string;
   name: string;
-  role_persona: string | null;
   model: string;
   description: string | null;
   system_prompt: string | null;
@@ -58,7 +57,6 @@ export interface Agent {
 
 export interface AgentCreatePayload {
   name: string;
-  role_persona: string | null;
   model: string;
   description: string | null;
   system_prompt: string | null;

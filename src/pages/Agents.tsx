@@ -10,7 +10,6 @@ import { PAGE_SIZE, MODEL_OPTIONS, CHANNELS, CHANNEL_LABELS } from "../config.ts
 // ── Form state (tools stored as comma string for editing) ────────────────────
 interface AgentFormState {
   name: string;
-  role_persona: string;
   model: string;
   description: string;
   system_prompt: string;
@@ -29,7 +28,6 @@ interface AgentFormProps {
 function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [form, setForm] = useState<AgentFormState>({
     name: agent?.name || "",
-    role_persona: agent?.role_persona || "",
     model: agent?.model || "claude-sonnet-4-6",
     description: agent?.description || "",
     system_prompt: agent?.system_prompt || "",
@@ -53,7 +51,6 @@ function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
     e.preventDefault();
     const payload: AgentCreatePayload = {
       name: form.name.trim(),
-      role_persona: form.role_persona.trim() || null,
       model: form.model.trim() || "claude-sonnet-4-6",
       description: form.description.trim() || null,
       system_prompt: form.system_prompt.trim() || null,
@@ -78,20 +75,6 @@ function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
           placeholder="My Agent"
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
-        />
-      </div>
-      <div className="form-group">
-        <label>
-          Role &amp; Persona{" "}
-          <span
-            className="field-hint"
-            title="The character and identity of the agent — defines its tone, personality, and perspective."
-          />
-        </label>
-        <textarea
-          placeholder="You are a friendly customer support agent..."
-          value={form.role_persona}
-          onChange={(e) => set("role_persona", e.target.value)}
         />
       </div>
       <div className="form-group">
@@ -242,9 +225,6 @@ function AgentRow({ agent, onEdit, onDelete }: AgentRowProps) {
         <tr className="agent-detail-row visible">
           <td colSpan={5} className="agent-detail-cell">
             <div className="agent-detail-grid">
-              {agent.role_persona && (
-                <DetailField label="Role & Persona" value={agent.role_persona} />
-              )}
               {agent.description && <DetailField label="Description" value={agent.description} />}
               {agent.system_prompt && (
                 <DetailField label="System Prompt" value={agent.system_prompt} />
@@ -253,8 +233,7 @@ function AgentRow({ agent, onEdit, onDelete }: AgentRowProps) {
               {agent.channels?.length > 0 && (
                 <DetailBadges label="Channels" items={agent.channels} labelMap={CHANNEL_LABELS} />
               )}
-              {!agent.role_persona &&
-                !agent.description &&
+              {!agent.description &&
                 !agent.system_prompt &&
                 !agent.tools?.length &&
                 !agent.channels?.length && (
