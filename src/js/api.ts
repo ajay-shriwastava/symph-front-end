@@ -19,12 +19,6 @@ export interface Paginated<T> {
 }
 
 // ── Agent ───────────────────────────────────────────────────────────────────
-export interface Skill {
-  name: string;
-  description: string | null;
-  enabled: boolean;
-}
-
 export interface InteractionRules {
   temperature: number;
   max_turns: number;
@@ -48,7 +42,6 @@ export interface Agent {
   tools: string[];
   channels: string[];
   memory_enabled: boolean;
-  skills: Skill[];
   interaction_rules: InteractionRules | null;
   guardrails: Guardrails | null;
   created_at: string;
@@ -353,10 +346,7 @@ export const getTemplates = (): Promise<Template[]> => apiFetch("/api/v1/templat
 export const instantiateTemplate = (templateId: string): Promise<Workflow> =>
   apiFetch(`/api/v1/templates/${templateId}/instantiate`, { method: "POST" });
 
-// ── Agent Config (skills, interaction rules, guardrails) ────────────────────
-export const updateSkills = (agentId: string, skills: Skill[]): Promise<Agent> =>
-  apiFetch(`/api/v1/agents/${agentId}/skills`, { method: "PUT", body: JSON.stringify({ skills }) });
-
+// ── Agent Config (interaction rules, guardrails) ─────────────────────────────
 export const updateInteractionRules = (
   agentId: string,
   interaction_rules: InteractionRules,

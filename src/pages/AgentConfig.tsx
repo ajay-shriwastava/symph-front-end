@@ -7,17 +7,15 @@ import { AGENT_DROPDOWN_LIMIT } from "../config.ts";
 import GeneralTab from "./agent-config/GeneralTab.tsx";
 import MemoryTab from "./agent-config/MemoryTab.tsx";
 import SchedulesTab from "./agent-config/SchedulesTab.tsx";
-import SkillsTab from "./agent-config/SkillsTab.tsx";
 import InteractionRulesTab from "./agent-config/InteractionRulesTab.tsx";
 import GuardrailsTab from "./agent-config/GuardrailsTab.tsx";
 
-type ConfigTab = "general" | "memory" | "skills" | "interaction" | "guardrails" | "schedules";
+type ConfigTab = "general" | "memory" | "interaction" | "guardrails" | "schedules";
 
-const TABS: ConfigTab[] = ["general", "memory", "skills", "interaction", "guardrails", "schedules"];
+const TABS: ConfigTab[] = ["general", "memory", "interaction", "guardrails", "schedules"];
 const TAB_LABELS: Record<ConfigTab, string> = {
   general: "General",
   memory: "Memory",
-  skills: "Skills",
   interaction: "Interaction Rules",
   guardrails: "Guardrails",
   schedules: "Schedules",
@@ -109,9 +107,6 @@ export default function AgentConfig() {
           )}
           {activeTab === "memory" && <MemoryTab agentId={agent.id} />}
           {activeTab === "schedules" && <SchedulesTab agentId={agent.id} />}
-          {activeTab === "skills" && (
-            <SkillsTab agent={agent} onAgentUpdated={setAgent} />
-          )}
           {activeTab === "interaction" && (
             <InteractionRulesTab agent={agent} onAgentUpdated={setAgent} />
           )}

@@ -558,33 +558,6 @@ tr:hover td {
   display: block;
 }
 
-/* Skill cards / row list */
-.skill-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.skill-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
-}
-.skill-row:last-child {
-  border-bottom: none;
-}
-.skill-name {
-  font-size: 13px;
-  font-weight: 500;
-  flex: 1;
-}
-.skill-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  flex: 2;
-}
-
 /* Config forms inside panels */
 .config-form {
   padding: 20px 16px;
@@ -976,34 +949,6 @@ tr:hover td {
 }
 .tab-panel.active {
   display: block;
-}
-
-/* Skills list */
-.skill-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px 0;
-}
-.skill-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-base);
-}
-.skill-name {
-  font-weight: 500;
-  font-size: 13px;
-  color: var(--text-primary);
-  flex: 0 0 auto;
-}
-.skill-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  flex: 1;
 }
 
 /* Tab form (General tab) */
