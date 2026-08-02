@@ -171,21 +171,6 @@ export interface MemoryEntry {
   updated_at: string;
 }
 
-// ── Schedule ────────────────────────────────────────────────────────────────
-export interface Schedule {
-  id: string;
-  label: string;
-  cron_expression: string;
-  enabled: boolean;
-  created_at: string;
-}
-
-export interface SchedulePayload {
-  label: string;
-  cron_expression: string;
-  enabled: boolean;
-}
-
 // ── Template ────────────────────────────────────────────────────────────────
 export interface Template {
   id: string;
@@ -319,26 +304,6 @@ export const upsertMemory = (
 
 export const deleteMemory = (agentId: string, key: string): Promise<null> =>
   apiFetch(`/api/v1/agents/${agentId}/memory/${encodeURIComponent(key)}`, { method: "DELETE" });
-
-// ── Agent Schedules ─────────────────────────────────────────────────────────
-export const getSchedules = (agentId: string): Promise<Paginated<Schedule>> =>
-  apiFetch(`/api/v1/agents/${agentId}/schedules`);
-
-export const createSchedule = (agentId: string, data: SchedulePayload): Promise<Schedule> =>
-  apiFetch(`/api/v1/agents/${agentId}/schedules`, { method: "POST", body: JSON.stringify(data) });
-
-export const updateSchedule = (
-  agentId: string,
-  scheduleId: string,
-  data: SchedulePayload,
-): Promise<Schedule> =>
-  apiFetch(`/api/v1/agents/${agentId}/schedules/${scheduleId}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-
-export const deleteSchedule = (agentId: string, scheduleId: string): Promise<null> =>
-  apiFetch(`/api/v1/agents/${agentId}/schedules/${scheduleId}`, { method: "DELETE" });
 
 // ── Templates ───────────────────────────────────────────────────────────────
 export const getTemplates = (): Promise<Template[]> => apiFetch("/api/v1/templates");

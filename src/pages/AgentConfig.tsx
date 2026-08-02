@@ -6,19 +6,17 @@ import { useToast } from "../context/ToastContext.tsx";
 import { AGENT_DROPDOWN_LIMIT } from "../config.ts";
 import GeneralTab from "./agent-config/GeneralTab.tsx";
 import MemoryTab from "./agent-config/MemoryTab.tsx";
-import SchedulesTab from "./agent-config/SchedulesTab.tsx";
 import InteractionRulesTab from "./agent-config/InteractionRulesTab.tsx";
 import GuardrailsTab from "./agent-config/GuardrailsTab.tsx";
 
-type ConfigTab = "general" | "memory" | "interaction" | "guardrails" | "schedules";
+type ConfigTab = "general" | "memory" | "interaction" | "guardrails";
 
-const TABS: ConfigTab[] = ["general", "memory", "interaction", "guardrails", "schedules"];
+const TABS: ConfigTab[] = ["general", "memory", "interaction", "guardrails"];
 const TAB_LABELS: Record<ConfigTab, string> = {
   general: "General",
   memory: "Memory",
   interaction: "Interaction Rules",
   guardrails: "Guardrails",
-  schedules: "Schedules",
 };
 
 export default function AgentConfig() {
@@ -106,7 +104,6 @@ export default function AgentConfig() {
             <GeneralTab agent={agent} onAgentUpdated={setAgent} />
           )}
           {activeTab === "memory" && <MemoryTab agentId={agent.id} />}
-          {activeTab === "schedules" && <SchedulesTab agentId={agent.id} />}
           {activeTab === "interaction" && (
             <InteractionRulesTab agent={agent} onAgentUpdated={setAgent} />
           )}
