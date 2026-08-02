@@ -33,6 +33,7 @@ export default function App() {
               <Route path="/messages" element={<Messages />} />
               <Route path="/logs" element={<Logs />} />
               <Route path="/config" element={<AgentConfig />} />
+              <Route path="/config/agents/:agentId" element={<AgentConfig />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

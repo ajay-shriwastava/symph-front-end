@@ -1006,15 +1006,23 @@ tr:hover td {
   flex: 1;
 }
 
+/* Tab form (General tab) */
+.tab-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Config form (interaction rules / guardrails) */
 .config-form {
-  padding: 8px 0;
+  padding: 24px;
 }
 .form-row {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: 16px;
 }
 .form-row .form-group {
   flex: 1;

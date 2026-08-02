@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { getAgents, createAgent, updateAgent, deleteAgent } from "../js/api.ts";
+import { useNavigate } from "react-router-dom";
+import { getAgents, createAgent, deleteAgent } from "../js/api.ts";
 import type { Agent, AgentCreatePayload } from "../js/api.ts";
 import { useToast } from "../context/ToastContext.tsx";
 import Pagination from "../components/Pagination.tsx";
@@ -174,11 +175,11 @@ function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
 // ── Agent row with expandable detail ────────────────────────────────────────
 interface AgentRowProps {
   agent: Agent;
-  onEdit: (agent: Agent) => void;
   onDelete: (agent: Agent) => void;
 }
 
-function AgentRow({ agent, onEdit, onDelete }: AgentRowProps) {
+function AgentRow({ agent, onDelete }: AgentRowProps) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -205,7 +206,7 @@ function AgentRow({ agent, onEdit, onDelete }: AgentRowProps) {
             className="btn btn-secondary btn-sm"
             onClick={(e) => {
               e.stopPropagation();
-              onEdit(agent);
+              navigate(`/config/agents/${agent.id}`);
             }}
           >
             Edit
@@ -281,7 +282,6 @@ function DetailBadges({ label, items, labelMap }: DetailBadgesProps) {
 export default function Agents() {
   const showToast = useToast();
   const [formOpen, setFormOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
 
   const fetcher = useCallback(
     (skip: number, limit: number) => getAgents(skip, limit),
@@ -291,29 +291,17 @@ export default function Agents() {
   const { items: agents, total, skip, loading, setSkip, reload } = useApiList(fetcher, PAGE_SIZE);
 
   function openNew() {
-    setEditingAgent(null);
-    setFormOpen(true);
-  }
-
-  function openEdit(agent: Agent) {
-    setEditingAgent(agent);
     setFormOpen(true);
   }
 
   function closeForm() {
     setFormOpen(false);
-    setEditingAgent(null);
   }
 
   async function handleSave(payload: AgentCreatePayload) {
     try {
-      if (editingAgent) {
-        await updateAgent(editingAgent.id, payload);
-        showToast("Agent updated.");
-      } else {
-        await createAgent(payload);
-        showToast("Agent created.");
-      }
+      await createAgent(payload);
+      showToast("Agent created.");
       closeForm();
       reload();
     } catch (e) {
@@ -341,7 +329,7 @@ export default function Agents() {
         </button>
       </div>
       <div className="card">
-        {formOpen && <AgentForm agent={editingAgent} onSave={handleSave} onCancel={closeForm} />}
+        {formOpen && <AgentForm agent={null} onSave={handleSave} onCancel={closeForm} />}
         <div className="table-wrap">
           <table>
             <thead>
@@ -364,7 +352,7 @@ export default function Agents() {
                 </tr>
               ) : (
                 agents.map((a) => (
-                  <AgentRow key={a.id} agent={a} onEdit={openEdit} onDelete={handleDelete} />
+                  <AgentRow key={a.id} agent={a} onDelete={handleDelete} />
                 ))
               )}
             </tbody>
