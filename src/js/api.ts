@@ -44,6 +44,7 @@ export interface Agent {
   memory_enabled: boolean;
   interaction_rules: InteractionRules | null;
   guardrails: Guardrails | null;
+  message_log_level: "MINIMAL" | "STANDARD" | "VERBOSE" | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +57,7 @@ export interface AgentCreatePayload {
   tools: string[];
   channels: string[];
   memory_enabled: boolean;
+  message_log_level?: "MINIMAL" | "STANDARD" | "VERBOSE" | null;
 }
 
 // ── Workflow ────────────────────────────────────────────────────────────────
@@ -132,6 +134,8 @@ export interface Message {
   content: string;
   agent_id: string | null;
   session_id: string | null;
+  destination_type: string | null;
+  destination_ref: string | null;
   created_at: string;
 }
 

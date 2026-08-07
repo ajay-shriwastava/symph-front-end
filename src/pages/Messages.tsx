@@ -16,6 +16,14 @@ const ROLE_BADGE: Record<MessageRole, string> = {
   agent: "badge-blue",
 };
 
+const DEST_BADGE: Record<string, string> = {
+  agent: "badge-blue",
+  report: "badge-green",
+  display: "badge-teal",
+  channel: "badge-amber",
+  workflow: "badge-purple",
+};
+
 // ── All Messages tab ─────────────────────────────────────────────────────────
 function AllMessages() {
   const showToast = useToast();
@@ -84,6 +92,8 @@ function AllMessages() {
             <tr>
               <th>Role</th>
               <th>Content</th>
+              <th>Dest Type</th>
+              <th>Dest Ref</th>
               <th>Agent ID</th>
               <th>Session ID</th>
               <th>Created</th>
@@ -92,10 +102,10 @@ function AllMessages() {
           </thead>
           <tbody>
             {loading ? (
-              <LoadingRows colSpan={6} />
+              <LoadingRows colSpan={8} />
             ) : messages.length === 0 ? (
               <tr>
-                <td colSpan={6} className="empty-state">
+                <td colSpan={8} className="empty-state">
                   No messages found.
                 </td>
               </tr>
@@ -106,6 +116,16 @@ function AllMessages() {
                     <span className={`badge ${ROLE_BADGE[m.role] || "badge-grey"}`}>{m.role}</span>
                   </td>
                   <td>{truncate(m.content, 80)}</td>
+                  <td>
+                    {m.destination_type ? (
+                      <span className={`badge ${DEST_BADGE[m.destination_type] || "badge-grey"}`}>
+                        {m.destination_type}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{m.destination_ref ? truncate(m.destination_ref, 20) : "—"}</td>
                   <td>{m.agent_id ? m.agent_id.slice(0, 8) + "…" : "—"}</td>
                   <td>{m.session_id ? m.session_id.slice(0, 8) + "…" : "—"}</td>
                   <td>{new Date(m.created_at).toLocaleString()}</td>

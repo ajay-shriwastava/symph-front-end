@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { updateInteractionRules } from "../../js/api.ts";
+import { updateInteractionRules, updateAgent } from "../../js/api.ts";
 import type { InteractionRules } from "../../js/api.ts";
 import { useToast } from "../../context/ToastContext.tsx";
 import type { AgentTabProps } from "./types.ts";
+
+type LogLevel = "MINIMAL" | "STANDARD" | "VERBOSE";
 
 export default function InteractionRulesTab({ agent, onAgentUpdated }: AgentTabProps) {
   const showToast = useToast();
@@ -13,15 +15,22 @@ export default function InteractionRulesTab({ agent, onAgentUpdated }: AgentTabP
     ir?.response_style || "balanced",
   );
   const [language, setLanguage] = useState(ir?.language || "en");
+  const [logLevel, setLogLevel] = useState<LogLevel | "">(
+    (agent.message_log_level as LogLevel) ?? "",
+  );
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const updated = await updateInteractionRules(agent.id, {
+      // Save interaction rules first, then patch message_log_level.
+      await updateInteractionRules(agent.id, {
         temperature: parseFloat(temperature),
         max_turns: parseInt(maxTurns, 10),
         response_style: style,
         language: language.trim(),
+      });
+      const updated = await updateAgent(agent.id, {
+        message_log_level: logLevel === "" ? null : logLevel,
       });
       onAgentUpdated(updated);
       showToast("Interaction rules saved.");
@@ -81,6 +90,21 @@ export default function InteractionRulesTab({ agent, onAgentUpdated }: AgentTabP
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
             />
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group">
+            <label>Message Log Level</label>
+            <select
+              value={logLevel}
+              onChange={(e) => setLogLevel(e.target.value as LogLevel | "")}
+            >
+              <option value="">Inherit floor</option>
+              <option value="MINIMAL">MINIMAL</option>
+              <option value="STANDARD">STANDARD</option>
+              <option value="VERBOSE">VERBOSE</option>
+            </select>
+            <small className="form-hint">Inherit uses the system floor (default: MINIMAL)</small>
           </div>
         </div>
         <div className="form-actions">
