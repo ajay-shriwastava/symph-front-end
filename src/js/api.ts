@@ -92,6 +92,7 @@ export interface Workflow {
   description: string | null;
   status: "draft" | "active" | "archived";
   graph_definition: GraphDefinition | null;
+  tool_config: Record<string, Record<string, string>>;
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +106,14 @@ export interface WorkflowUpdatePayload {
   name?: string;
   description?: string | null;
   graph_definition?: GraphDefinition;
+  tool_config?: Record<string, Record<string, string>>;
+}
+
+export interface ToolParam {
+  name: string;
+  label: string;
+  type: string;
+  required: boolean;
 }
 
 // ── Workflow Run ────────────────────────────────────────────────────────────
@@ -228,6 +237,9 @@ export const deleteAgent = (id: string): Promise<null> =>
 export const getWorkflows = (skip = 0, limit = 20): Promise<Paginated<Workflow>> =>
   apiFetch(`/api/v1/workflows?skip=${skip}&limit=${limit}`);
 
+export const getWorkflow = (id: string): Promise<Workflow> =>
+  apiFetch(`/api/v1/workflows/${id}`);
+
 export const createWorkflow = (data: WorkflowCreatePayload): Promise<Workflow> =>
   apiFetch("/api/v1/workflows", { method: "POST", body: JSON.stringify(data) });
 
@@ -236,6 +248,9 @@ export const updateWorkflow = (id: string, data: WorkflowUpdatePayload): Promise
 
 export const deleteWorkflow = (id: string): Promise<null> =>
   apiFetch(`/api/v1/workflows/${id}`, { method: "DELETE" });
+
+export const getToolParams = (): Promise<Record<string, ToolParam[]>> =>
+  apiFetch("/api/v1/tools/params");
 
 // ── Workflow Runs ───────────────────────────────────────────────────────────
 export const runWorkflow = (

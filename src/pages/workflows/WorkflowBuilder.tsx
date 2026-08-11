@@ -3,6 +3,7 @@ import {
   updateWorkflow,
   runWorkflow,
   getWorkflowRuns,
+  getToolParams,
   WS_BASE,
 } from "../../js/api.ts";
 import type {
@@ -12,6 +13,7 @@ import type {
   GraphNode,
   GraphEdge,
   GraphDefinition,
+  ToolParam,
 } from "../../js/api.ts";
 import { useToast } from "../../context/ToastContext.tsx";
 import { AUTH_TOKEN_KEY, DEV_TOKEN } from "../../config.ts";
@@ -50,6 +52,12 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
     const gd = workflow.graph_definition;
     return String(gd?.max_loops ?? 20);
   });
+
+  // Tool config state
+  const [toolConfig, setToolConfig] = useState<Record<string, Record<string, string>>>(
+    () => workflow.tool_config ?? {},
+  );
+  const [toolParams, setToolParams] = useState<Record<string, ToolParam[]>>({});
 
   // Selection & transform
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -103,6 +111,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
 
   useEffect(() => {
     loadRuns();
+    getToolParams().then(setToolParams).catch(() => {});
     return () => {
       if (activeWsRef.current) activeWsRef.current.close();
     };
@@ -309,6 +318,13 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
     setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, ...patch } : n)));
   }
 
+  function handleUpdateToolConfig(toolName: string, paramName: string, value: string) {
+    setToolConfig((prev) => ({
+      ...prev,
+      [toolName]: { ...(prev[toolName] ?? {}), [paramName]: value },
+    }));
+  }
+
   // ── Save & Run ───────────────────────────────────────────────────────────
   async function handleSave() {
     const graph_definition: GraphDefinition = {
@@ -317,7 +333,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
       max_loops: parseInt(maxLoops) || 20,
     };
     try {
-      await updateWorkflow(workflow.id, { graph_definition });
+      await updateWorkflow(workflow.id, { graph_definition, tool_config: toolConfig });
       setBuilderStatus("Saved");
       setTimeout(() => setBuilderStatus(""), 2000);
       showToast("Workflow saved.");
@@ -493,7 +509,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData("text/plain", type)}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === "tool" ? "Pipeline Tool" : type.charAt(0).toUpperCase() + type.slice(1)}
               </div>
             ))}
           </div>
@@ -600,13 +616,9 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                           strokeWidth="1.5"
                         />
                       ) : node.type === "tool" ? (
-                        <rect
+                        <polygon
                           className="node-body"
-                          x={node.x}
-                          y={node.y}
-                          width={g.w}
-                          height={g.h}
-                          rx={g.rx}
+                          points={`${node.x + g.w * 0.25},${node.y} ${node.x + g.w * 0.75},${node.y} ${node.x + g.w},${node.y + g.h / 2} ${node.x + g.w * 0.75},${node.y + g.h} ${node.x + g.w * 0.25},${node.y + g.h} ${node.x},${node.y + g.h / 2}`}
                           fill="var(--teal-dim)"
                           stroke={sel ? "var(--purple)" : "var(--teal)"}
                           strokeWidth="1.5"
@@ -638,16 +650,30 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                       </text>
 
                       {/* Sub-label */}
-                      {(node.type === "agent" || node.type === "tool") && (
+                      {node.type === "tool" && (
                         <text
                           className="node-type-label"
                           x={g.cx}
                           y={node.y + g.h - 6}
                           textAnchor="middle"
                         >
-                          {node.type === "tool" ? node.tool_name || "tool" : "agent"}
+                          {node.tool_name || "pipeline tool"} · pipeline
                         </text>
                       )}
+                      {node.type === "agent" && (() => {
+                        const agentObj = node.agent_id ? agentsList.find((a) => a.id === node.agent_id) : null;
+                        const toolCount = agentObj?.tools?.length ?? 0;
+                        return (
+                          <text
+                            className="node-type-label"
+                            x={g.cx}
+                            y={node.y + g.h - 6}
+                            textAnchor="middle"
+                          >
+                            {toolCount > 0 ? `${toolCount} LLM tool${toolCount === 1 ? "" : "s"}` : "agent"}
+                          </text>
+                        );
+                      })()}
 
                       {/* Ports */}
                       {Object.entries(ports).map(([portKey, pos]) => (
@@ -696,6 +722,9 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                 agentsList={agentsList}
                 onUpdate={(patch) => updateNode(selectedNodeId!, patch)}
                 onDelete={() => removeNode(selectedNodeId!)}
+                toolConfig={toolConfig}
+                onUpdateToolConfig={handleUpdateToolConfig}
+                toolParams={toolParams}
               />
             )}
             {!selectedNode && selectedEdge && (

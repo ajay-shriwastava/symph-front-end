@@ -133,10 +133,10 @@ export default function GeneralTab({ agent, onAgentUpdated }: Props) {
       </div>
       <div className="form-group">
         <label>
-          Tools{" "}
+          LLM Tools{" "}
           <span
             className="field-hint"
-            title="Comma-separated tool names this agent can call (e.g. scan_csv, publish_report)."
+            title="Comma-separated tool names the agent autonomously decides to call during inference (e.g. scan_csv, publish_report)."
           />
         </label>
         <input
@@ -147,7 +147,13 @@ export default function GeneralTab({ agent, onAgentUpdated }: Props) {
         />
       </div>
       <div className="form-group">
-        <label>Channels</label>
+        <label>
+          Channels{" "}
+          <span
+            className="field-hint"
+            title="Each active channel auto-injects its corresponding tool as an LLM Tool the agent can call (e.g. email → send_email, telegram → send_telegram)."
+          />
+        </label>
         <div className="channel-options">
           {CHANNELS.map((ch) => (
             <label key={ch} className="channel-option">

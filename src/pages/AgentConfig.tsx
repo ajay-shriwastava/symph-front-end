@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { getAgents, getAgent } from "../js/api.ts";
-import type { Agent } from "../js/api.ts";
+import { getAgents, getAgent, getWorkflows } from "../js/api.ts";
+import type { Agent, Workflow } from "../js/api.ts";
 import { useToast } from "../context/ToastContext.tsx";
 import { AGENT_DROPDOWN_LIMIT } from "../config.ts";
 import GeneralTab from "./agent-config/GeneralTab.tsx";
@@ -24,15 +24,19 @@ export default function AgentConfig() {
   const navigate = useNavigate();
   const showToast = useToast();
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [activeTab, setActiveTab] = useState<ConfigTab>("general");
 
-  // Landing: load agent list for the selector
+  // Landing: load agent and workflow lists for selectors
   useEffect(() => {
     if (agentId) return;
     getAgents(0, AGENT_DROPDOWN_LIMIT)
       .then((data) => setAgents(data.items))
       .catch((e) => showToast((e as Error).message, "error"));
+    getWorkflows(0, AGENT_DROPDOWN_LIMIT)
+      .then((data) => setWorkflows(data.items))
+      .catch(() => {});
   }, [agentId, showToast]);
 
   // Config page: load the selected agent
@@ -65,6 +69,21 @@ export default function AgentConfig() {
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-bar" style={{ marginTop: "1rem" }}>
+            <label className="filter-label">Select Workflow:</label>
+            <select
+              className="select-wide"
+              value=""
+              onChange={(e) => e.target.value && navigate(`/config/workflows/${e.target.value}`)}
+            >
+              <option value="">-- Choose a workflow --</option>
+              {workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
                 </option>
               ))}
             </select>
