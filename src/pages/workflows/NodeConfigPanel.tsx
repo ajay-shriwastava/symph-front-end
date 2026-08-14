@@ -129,6 +129,18 @@ export function NodeConfigPanel({
         </>
       )}
 
+      {node.type === "human_review" && (
+        <div className="config-field">
+          <label>Review prompt</label>
+          <textarea
+            rows={3}
+            placeholder="Please review the output above and provide feedback or approval to continue."
+            value={node.prompt || ""}
+            onChange={(e) => onUpdate({ prompt: e.target.value })}
+          />
+        </div>
+      )}
+
       {node.type === "condition" && (
         <>
           <div className="config-field">

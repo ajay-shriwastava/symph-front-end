@@ -40,6 +40,7 @@ export const NODE_DIMS: Record<GraphNode["type"], NodeDims> = {
   agent: { w: 130, h: 52, rx: 8 },
   tool: { w: 130, h: 52, rx: 8 },
   condition: { w: 100, h: 52, rx: 4 },
+  human_review: { w: 130, h: 52, rx: 8 },
 };
 
 export function nodeGeom(node: GraphNode) {

@@ -63,7 +63,7 @@ export interface AgentCreatePayload {
 // ── Workflow ────────────────────────────────────────────────────────────────
 export interface GraphNode {
   id: string;
-  type: "start" | "end" | "agent" | "tool" | "condition";
+  type: "start" | "end" | "agent" | "tool" | "condition" | "human_review";
   x: number;
   y: number;
   label: string;
@@ -71,6 +71,7 @@ export interface GraphNode {
   tool_name?: string;
   true_label?: string;
   false_label?: string;
+  prompt?: string;
 }
 
 export interface GraphEdge {
@@ -128,7 +129,7 @@ export interface RunUsage {
 export interface WorkflowRun {
   id: string;
   workflow_id: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "completed" | "failed" | "awaiting_review";
   started_at: string | null;
   finished_at: string | null;
   usage: RunUsage | null;
@@ -268,6 +269,16 @@ export const getWorkflowRuns = (
 
 export const getWorkflowRun = (workflowId: string, runId: string): Promise<WorkflowRun> =>
   apiFetch(`/api/v1/workflows/${workflowId}/runs/${runId}`);
+
+export const resumeRun = (
+  workflowId: string,
+  runId: string,
+  human_input: string,
+): Promise<WorkflowRun> =>
+  apiFetch(`/api/v1/workflows/${workflowId}/runs/${runId}/resume`, {
+    method: "POST",
+    body: JSON.stringify({ human_input }),
+  });
 
 // ── Messages ────────────────────────────────────────────────────────────────
 export const getMessages = (filters: MessageFilters = {}): Promise<Paginated<Message>> => {

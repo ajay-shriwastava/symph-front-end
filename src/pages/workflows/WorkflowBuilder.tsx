@@ -4,6 +4,7 @@ import {
   runWorkflow,
   getWorkflowRuns,
   getToolParams,
+  resumeRun,
   WS_BASE,
 } from "../../js/api.ts";
 import type {
@@ -71,6 +72,15 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
   const [runLogVisible, setRunLogVisible] = useState(true);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [builderStatus, setBuilderStatus] = useState("");
+
+  // HITL state
+  const [reviewPending, setReviewPending] = useState<{
+    nodeId: string;
+    prompt: string;
+    context: string;
+  } | null>(null);
+  const [reviewInput, setReviewInput] = useState("");
+  const currentRunIdRef = useRef<string | null>(null);
 
   // Run log auto-scroll
   const runLogBodyRef = useRef<HTMLDivElement>(null);
@@ -284,6 +294,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
       agent: "Agent",
       condition: "Check",
       tool: "Tool",
+      human_review: "Human Review",
     };
     const node: GraphNode = { id: genId(type), type, x, y, label: LABELS[type] || type };
     setNodes((prev) => [...prev, node]);
@@ -346,9 +357,22 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
   async function handleRun() {
     try {
       const runResp = await runWorkflow(workflow.id, {});
+      currentRunIdRef.current = runResp.id;
+      setReviewPending(null);
+      setReviewInput("");
       setRunLog([{ text: `Run started: ${runResp.id}`, cls: "log-enter" }]);
       openRunWebSocket(workflow.id, runResp.id);
       loadRuns();
+    } catch (e) {
+      showToast((e as Error).message, "error");
+    }
+  }
+
+  async function handleResumeRun() {
+    if (!currentRunIdRef.current) return;
+    try {
+      await resumeRun(workflow.id, currentRunIdRef.current, reviewInput);
+      setRunLog((p) => [...p, { text: "Review submitted — workflow resuming…", cls: "log-complete" }]);
     } catch (e) {
       showToast((e as Error).message, "error");
     }
@@ -396,6 +420,27 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
         }
         case "edge_traverse":
           setRunLog((p) => [...p, { text: `[${ts}] EDGE   ${msg.edge_id}`, cls: "log-edge" }]);
+          break;
+        case "human_review_required":
+          setReviewPending({
+            nodeId: msg.node_id as string,
+            prompt: msg.prompt as string,
+            context: msg.context as string,
+          });
+          setRunLog((p) => [
+            ...p,
+            { text: `[${ts}] PAUSED  node:${msg.node_id} — awaiting human review`, cls: "log-review" },
+          ]);
+          loadRuns();
+          break;
+        case "human_review_completed":
+          setReviewPending(null);
+          setReviewInput("");
+          setRunLog((p) => [
+            ...p,
+            { text: `[${ts}] RESUMED node:${msg.node_id}`, cls: "log-complete" },
+          ]);
+          loadRuns();
           break;
         case "run_complete": {
           const u = msg.usage as Record<string, number> | undefined;
@@ -501,7 +546,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
           {/* Palette */}
           <div className="node-palette">
             <div className="palette-label">Nodes</div>
-            {(["start", "agent", "condition", "tool", "end"] as const).map((type) => (
+            {(["start", "agent", "condition", "tool", "human_review", "end"] as const).map((type) => (
               <div
                 key={type}
                 className="palette-chip"
@@ -509,7 +554,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData("text/plain", type)}
               >
-                {type === "tool" ? "Pipeline Tool" : type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === "tool" ? "Pipeline Tool" : type === "human_review" ? "Human Review" : type.charAt(0).toUpperCase() + type.slice(1)}
               </div>
             ))}
           </div>
@@ -607,6 +652,19 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                           stroke={sel ? "var(--purple)" : "rgba(83,74,183,0.3)"}
                           strokeWidth="2"
                         />
+                      ) : node.type === "human_review" ? (
+                        <rect
+                          className="node-body"
+                          x={node.x}
+                          y={node.y}
+                          width={g.w}
+                          height={g.h}
+                          rx={g.rx}
+                          fill="var(--purple-dim)"
+                          stroke={sel ? "var(--purple)" : "var(--purple)"}
+                          strokeWidth="1.5"
+                          strokeDasharray="5,3"
+                        />
                       ) : node.type === "condition" ? (
                         <polygon
                           className="node-body"
@@ -658,6 +716,17 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                           textAnchor="middle"
                         >
                           {node.tool_name || "pipeline tool"} · pipeline
+                        </text>
+                      )}
+                      {node.type === "human_review" && (
+                        <text
+                          className="node-type-label"
+                          x={g.cx}
+                          y={node.y + g.h - 6}
+                          textAnchor="middle"
+                          fill="var(--purple)"
+                        >
+                          human in the loop
                         </text>
                       )}
                       {node.type === "agent" && (() => {
@@ -750,6 +819,34 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
           )}
         </div>
 
+        {/* HITL review panel */}
+        {reviewPending && (
+          <div className="hitl-panel">
+            <div className="hitl-panel-header">Human Review Required — node: {reviewPending.nodeId}</div>
+            <div className="hitl-panel-prompt">{reviewPending.prompt}</div>
+            {reviewPending.context && (
+              <>
+                <div className="hitl-context-label">Agent output</div>
+                <div className="hitl-panel-context">{reviewPending.context}</div>
+              </>
+            )}
+            <textarea
+              className="hitl-input"
+              rows={4}
+              placeholder="Enter your feedback, approval, or revised instructions…"
+              value={reviewInput}
+              onChange={(e) => setReviewInput(e.target.value)}
+            />
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleResumeRun}
+              disabled={!reviewInput.trim()}
+            >
+              Submit &amp; Continue
+            </button>
+          </div>
+        )}
+
         {/* Run history */}
         <details className="runs-history">
           <summary>Run History</summary>
@@ -782,6 +879,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                             running: "badge-blue",
                             completed: "badge-teal",
                             failed: "badge-red",
+                            awaiting_review: "badge-purple",
                           } as Record<string, string>
                         )[r.status] || "badge-grey";
                       return (
