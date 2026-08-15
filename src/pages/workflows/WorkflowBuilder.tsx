@@ -295,6 +295,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
       condition: "Check",
       tool: "Tool",
       human_review: "Human Review",
+      rag: "RAG",
     };
     const node: GraphNode = { id: genId(type), type, x, y, label: LABELS[type] || type };
     setNodes((prev) => [...prev, node]);
@@ -546,7 +547,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
           {/* Palette */}
           <div className="node-palette">
             <div className="palette-label">Nodes</div>
-            {(["start", "agent", "condition", "tool", "human_review", "end"] as const).map((type) => (
+            {(["start", "agent", "condition", "tool", "human_review", "rag", "end"] as const).map((type) => (
               <div
                 key={type}
                 className="palette-chip"
@@ -554,7 +555,7 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData("text/plain", type)}
               >
-                {type === "tool" ? "Pipeline Tool" : type === "human_review" ? "Human Review" : type.charAt(0).toUpperCase() + type.slice(1)}
+                {type === "tool" ? "Pipeline Tool" : type === "human_review" ? "Human Review" : type === "rag" ? "RAG" : type.charAt(0).toUpperCase() + type.slice(1)}
               </div>
             ))}
           </div>
@@ -665,6 +666,19 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                           strokeWidth="1.5"
                           strokeDasharray="5,3"
                         />
+                      ) : node.type === "rag" ? (
+                        <rect
+                          className="node-body"
+                          x={node.x}
+                          y={node.y}
+                          width={g.w}
+                          height={g.h}
+                          rx={g.rx}
+                          fill="var(--teal-dim)"
+                          stroke={sel ? "var(--purple)" : "var(--teal)"}
+                          strokeWidth="1.5"
+                          strokeDasharray="4,2"
+                        />
                       ) : node.type === "condition" ? (
                         <polygon
                           className="node-body"
@@ -727,6 +741,17 @@ export default function WorkflowBuilder({ workflow, agentsList, onClose, onSaved
                           fill="var(--purple)"
                         >
                           human in the loop
+                        </text>
+                      )}
+                      {node.type === "rag" && (
+                        <text
+                          className="node-type-label"
+                          x={g.cx}
+                          y={node.y + g.h - 6}
+                          textAnchor="middle"
+                          fill="var(--teal)"
+                        >
+                          knowledge retrieval · top {node.top_k ?? 5}
                         </text>
                       )}
                       {node.type === "agent" && (() => {

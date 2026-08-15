@@ -933,6 +933,13 @@ tr:hover td {
   border-style: dashed;
 }
 
+/* Palette chip — RAG node */
+.palette-chip[data-type="rag"] {
+  border-color: var(--teal);
+  color: var(--teal);
+  border-style: dashed;
+}
+
 /* Runs history (details/summary collapsible) */
 .runs-history {
   border-top: 1px solid var(--border);

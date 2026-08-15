@@ -141,6 +141,19 @@ export function NodeConfigPanel({
         </div>
       )}
 
+      {node.type === "rag" && (
+        <div className="config-field">
+          <label>Top K (chunks)</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={node.top_k ?? 5}
+            onChange={(e) => onUpdate({ top_k: parseInt(e.target.value) || 5 })}
+          />
+        </div>
+      )}
+
       {node.type === "condition" && (
         <>
           <div className="config-field">

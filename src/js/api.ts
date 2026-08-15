@@ -63,7 +63,7 @@ export interface AgentCreatePayload {
 // ── Workflow ────────────────────────────────────────────────────────────────
 export interface GraphNode {
   id: string;
-  type: "start" | "end" | "agent" | "tool" | "condition" | "human_review";
+  type: "start" | "end" | "agent" | "tool" | "condition" | "human_review" | "rag";
   x: number;
   y: number;
   label: string;
@@ -72,6 +72,7 @@ export interface GraphNode {
   true_label?: string;
   false_label?: string;
   prompt?: string;
+  top_k?: number;
 }
 
 export interface GraphEdge {
@@ -334,6 +335,42 @@ export const upsertMemory = (
 
 export const deleteMemory = (agentId: string, key: string): Promise<null> =>
   apiFetch(`/api/v1/agents/${agentId}/memory/${encodeURIComponent(key)}`, { method: "DELETE" });
+
+// ── Knowledge Base ───────────────────────────────────────────────────────────
+export interface KnowledgeEntry {
+  id: string;
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface KnowledgeSearchResult {
+  id: string;
+  title: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  score: number;
+}
+
+export const getKnowledge = (skip = 0, limit = 50): Promise<KnowledgeEntry[]> =>
+  apiFetch(`/api/v1/knowledge?skip=${skip}&limit=${limit}`);
+
+export const ingestKnowledge = (data: {
+  title: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+}): Promise<KnowledgeEntry[]> =>
+  apiFetch("/api/v1/knowledge", { method: "POST", body: JSON.stringify(data) });
+
+export const deleteKnowledge = (id: string): Promise<null> =>
+  apiFetch(`/api/v1/knowledge/${id}`, { method: "DELETE" });
+
+export const searchKnowledge = (data: {
+  query: string;
+  top_k?: number;
+}): Promise<KnowledgeSearchResult[]> =>
+  apiFetch("/api/v1/knowledge/search", { method: "POST", body: JSON.stringify(data) });
 
 // ── Templates ───────────────────────────────────────────────────────────────
 export const getTemplates = (): Promise<Template[]> => apiFetch("/api/v1/templates");
