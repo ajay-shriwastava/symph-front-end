@@ -13,6 +13,7 @@ const PAGES: NavPage[] = [
   { to: "/messages", label: "Messages", icon: "ti-messages" },
   { to: "/logs", label: "Logs", icon: "ti-list-details" },
   { to: "/config", label: "Config", icon: "ti-settings" },
+  { to: "/knowledge", label: "Doc Store", icon: "ti-books" },
 ];
 
 export default function Nav() {

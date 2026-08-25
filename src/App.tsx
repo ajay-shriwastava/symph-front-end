@@ -10,6 +10,7 @@ const Messages = lazy(() => import("./pages/Messages.tsx"));
 const Logs = lazy(() => import("./pages/Logs.tsx"));
 const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
 const WorkflowConfig = lazy(() => import("./pages/WorkflowConfig.tsx"));
+const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 function PageLoader() {
@@ -36,6 +37,7 @@ export default function App() {
               <Route path="/config" element={<AgentConfig />} />
               <Route path="/config/agents/:agentId" element={<AgentConfig />} />
               <Route path="/config/workflows/:workflowId" element={<WorkflowConfig />} />
+              <Route path="/knowledge" element={<KnowledgeBase />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
