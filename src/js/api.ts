@@ -393,6 +393,36 @@ export const searchKnowledge = (data: {
 }): Promise<KnowledgeSearchResult[]> =>
   apiFetch("/api/v1/knowledge/search", { method: "POST", body: JSON.stringify(data) });
 
+// ── MCP ─────────────────────────────────────────────────────────────────────
+export interface McpAuditLogEntry {
+  id: string;
+  caller_id: string;
+  tool_name: string;
+  agent_id: string | null;
+  params_summary: Record<string, unknown>;
+  result_summary: string | null;
+  created_at: string;
+}
+
+export interface McpToolInfo {
+  name: string;
+  category: "memory" | "knowledge";
+  description: string;
+}
+
+export const getMcpTools = (): Promise<McpToolInfo[]> =>
+  apiFetch("/api/v1/mcp/tools");
+
+export const getMcpAuditLog = (
+  skip = 0,
+  limit = 50,
+  caller_id?: string,
+): Promise<Paginated<McpAuditLogEntry>> => {
+  const p = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+  if (caller_id) p.set("caller_id", caller_id);
+  return apiFetch(`/api/v1/mcp/audit-log?${p}`);
+};
+
 // ── Templates ───────────────────────────────────────────────────────────────
 export const getTemplates = (): Promise<Template[]> => apiFetch("/api/v1/templates");
 
