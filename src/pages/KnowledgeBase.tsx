@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   getKnowledge,
   ingestKnowledge,
   deleteKnowledge,
   searchKnowledge,
+  uploadKnowledge,
 } from "../js/api.ts";
 import type { KnowledgeEntry, KnowledgeSearchResult } from "../js/api.ts";
 import { useToast } from "../context/ToastContext.tsx";
@@ -16,6 +17,12 @@ function Documents() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Upload form
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Ingest form
   const [title, setTitle] = useState("");
@@ -37,6 +44,24 @@ function Documents() {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uploadFile || !uploadTitle.trim()) return;
+    setUploading(true);
+    try {
+      const chunks = await uploadKnowledge(uploadFile, uploadTitle.trim());
+      showToast(`Uploaded "${uploadFile.name}" — ${chunks.length} chunk(s) stored.`);
+      setUploadFile(null);
+      setUploadTitle("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      load();
+    } catch (e) {
+      showToast((e as Error).message, "error");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleIngest(e: React.FormEvent) {
     e.preventDefault();
@@ -68,6 +93,43 @@ function Documents() {
 
   return (
     <>
+      {/* Upload file form */}
+      <div className="kb-ingest-form">
+        <h2 className="kb-section-title">Upload File</h2>
+        <form onSubmit={handleUpload} className="kb-form">
+          <label htmlFor="kb-file-input" className="kb-file-label">
+            Select a PDF or text file
+          </label>
+          <input
+            id="kb-file-input"
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt"
+            className="input"
+            onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+          />
+          <input
+            type="text"
+            className="input"
+            placeholder="Document title"
+            value={uploadTitle}
+            onChange={(e) => setUploadTitle(e.target.value)}
+            required
+          />
+          <div>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={uploading || !uploadFile || !uploadTitle.trim()}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <hr className="kb-divider" />
+
       {/* Ingest form */}
       <div className="kb-ingest-form">
         <h2 className="kb-section-title">Ingest Document</h2>

@@ -366,6 +366,27 @@ export const ingestKnowledge = (data: {
 export const deleteKnowledge = (id: string): Promise<null> =>
   apiFetch(`/api/v1/knowledge/${id}`, { method: "DELETE" });
 
+export async function uploadKnowledge(file: File, title: string): Promise<KnowledgeEntry[]> {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("title", title);
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}/api/v1/knowledge/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const body = await res.json();
+      detail = body.detail || detail;
+    } catch {}
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export const searchKnowledge = (data: {
   query: string;
   top_k?: number;
